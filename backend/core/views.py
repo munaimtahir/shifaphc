@@ -3,7 +3,7 @@ from io import TextIOWrapper
 from django.db.models import Q
 from django.utils import timezone
 from rest_framework import viewsets, permissions
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 
 from .models import Indicator, ComplianceRecord, EvidenceItem
@@ -13,7 +13,12 @@ from .services import compute_valid_until, compute_due_status
 class IndicatorViewSet(viewsets.ModelViewSet):
   queryset = Indicator.objects.all().order_by("section","standard")
   serializer_class = IndicatorSerializer
-  permission_classes = [permissions.IsAuthenticated]
+
+
+  def get_permissions(self):
+    if self.action in ["list", "retrieve"]:
+      return [permissions.AllowAny()]
+    return [permissions.IsAuthenticated()]
 
   def get_queryset(self):
     qs = super().get_queryset()
@@ -93,3 +98,8 @@ class AuditViewSet(viewsets.ViewSet):
       st = compute_due_status(ind)[2]
       counts[st] = counts.get(st,0)+1
     return Response({"period":period,"start":start_date,"end":end_date,"counts":counts})
+
+@api_view(["GET"])
+@permission_classes([permissions.AllowAny])
+def health_check(request):
+  return Response({"status": "ok"})
