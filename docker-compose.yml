@@ -1,6 +1,7 @@
 services:
   postgres:
     image: postgres:16
+    restart: unless-stopped
     environment:
       POSTGRES_DB: accred
       POSTGRES_USER: accred
@@ -8,36 +9,36 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5433:5432"
 
   backend:
     build: ./backend
+    restart: unless-stopped
     env_file:
       - ./backend/.env
     volumes:
-      - ./backend:/app
       - ./volumes/media:/app/media
-      - "/mnt/data:/data:ro"
+      - ./data:/data:ro
+      - ./backend/staticfiles:/app/staticfiles
     depends_on:
       - postgres
     ports:
-      - "8001:8000"
+      - "127.0.0.1:8017:8000"
     command: >
       sh -c "python manage.py migrate &&
-             python manage.py runserver 0.0.0.0:8000"
+             python manage.py collectstatic --no-input &&
+             gunicorn accredcheck.wsgi:application --bind 0.0.0.0:8000 --workers 4 --timeout 120"
 
   frontend:
-    build: ./frontend
-    environment:
-      VITE_API_BASE: "http://localhost:8001"
-    volumes:
-      - ./frontend:/app
+    build:
+      context: ./frontend
+      args:
+        - VITE_API_BASE=https://sos.alshifalab.pk
+    restart: unless-stopped
     depends_on:
       - backend
     ports:
-      - "5173:5173"
-    command: >
-      sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 5173"
+      - "127.0.0.1:8083:80"
 
 volumes:
   pgdata:
