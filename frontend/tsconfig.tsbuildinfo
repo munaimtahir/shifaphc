@@ -1,0 +1,1 @@
+{"root":["./src/App.tsx","./src/api.ts","./src/auth.tsx","./src/main.tsx","./src/components/ProtectedRoute.tsx","./src/layouts/Layout.tsx","./src/pages/AuditDashboard.tsx","./src/pages/ComplianceForm.tsx","./src/pages/Dashboard.tsx","./src/pages/EvidenceUpload.tsx","./src/pages/ImportIndicators.tsx","./src/pages/IndicatorDetail.tsx","./src/pages/Login.tsx"],"version":"5.9.3"}

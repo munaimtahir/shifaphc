@@ -1,39 +1,35 @@
-import React, { useEffect, useState } from "react";
-import { fetchIndicators, Indicator } from "./api";
+import React from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { AuthProvider } from './auth';
+import Layout from './layouts/Layout';
+import ProtectedRoute from './components/ProtectedRoute';
+import Dashboard from './pages/Dashboard';
+import Login from './pages/Login';
+import IndicatorDetail from './pages/IndicatorDetail';
+import ComplianceForm from './pages/ComplianceForm';
+import EvidenceUpload from './pages/EvidenceUpload';
+import AuditDashboard from './pages/AuditDashboard';
+import ImportIndicators from './pages/ImportIndicators';
 
 export default function App() {
-  const [items, setItems] = useState<Indicator[]>([]);
-  const [q, setQ] = useState("");
-
-  useEffect(() => { fetchIndicators().then(setItems).catch(console.error); }, []);
-
-  async function onSearch() {
-    const data = await fetchIndicators(q);
-    setItems(data);
-  }
-
   return (
-    <div style={{ fontFamily: "system-ui", padding: 16, maxWidth: 1100, margin: "0 auto" }}>
-      <h1>Accred Checklist OS</h1>
-      <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-        <input style={{ flex: 1, padding: 8 }} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search indicators..." />
-        <button style={{ padding: "8px 12px" }} onClick={onSearch}>Search</button>
-      </div>
-      <table width="100%" cellPadding={8} style={{ borderCollapse: "collapse" }}>
-        <thead><tr style={{ textAlign: "left", borderBottom: "1px solid #ddd" }}>
-          <th>Section</th><th>Indicator</th><th>Frequency</th><th>Status</th>
-        </tr></thead>
-        <tbody>
-          {items.map(it => (
-            <tr key={it.id} style={{ borderBottom: "1px solid #f0f0f0", verticalAlign: "top" }}>
-              <td style={{ width: 220 }}>{it.section}</td>
-              <td>{it.indicator_text}</td>
-              <td style={{ width: 120 }}>{it.frequency}</td>
-              <td style={{ width: 120 }}>{it.due_status}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route element={<Layout />}>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/indicators/:id" element={<IndicatorDetail />} />
+
+            <Route element={<ProtectedRoute />}>
+              <Route path="/compliance/new" element={<ComplianceForm />} />
+              <Route path="/evidence/upload" element={<EvidenceUpload />} />
+              <Route path="/indicators/import" element={<ImportIndicators />} />
+              <Route path="/audit" element={<AuditDashboard />} />
+            </Route>
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   );
 }

@@ -64,6 +64,13 @@ class ComplianceRecordViewSet(viewsets.ModelViewSet):
   serializer_class = ComplianceRecordSerializer
   permission_classes = [permissions.IsAuthenticated]
 
+  def get_queryset(self):
+    qs = super().get_queryset()
+    ind = self.request.query_params.get("indicator")
+    if ind:
+      qs = qs.filter(indicator_id=ind)
+    return qs
+
   def perform_create(self, serializer):
     indicator = serializer.validated_data["indicator"]
     compliant_on = serializer.validated_data.get("compliant_on") or timezone.localdate()
@@ -77,6 +84,13 @@ class EvidenceItemViewSet(viewsets.ModelViewSet):
   serializer_class = EvidenceItemSerializer
   permission_classes = [permissions.IsAuthenticated]
 
+  def get_queryset(self):
+    qs = super().get_queryset()
+    ind = self.request.query_params.get("indicator")
+    if ind:
+      qs = qs.filter(indicator_id=ind)
+    return qs
+
   def perform_create(self, serializer):
     serializer.save(created_by=self.request.user)
 
@@ -88,8 +102,9 @@ class AuditViewSet(viewsets.ViewSet):
     period = request.query_params.get("period","month")
     start = request.query_params.get("start")
     if not start:
-      return Response({"detail":"start is required"}, status=400)
-    start_date = timezone.datetime.fromisoformat(start).date()
+      start_date = timezone.localdate().replace(day=1)
+    else:
+      start_date = timezone.datetime.fromisoformat(start).date()
     end_date = start_date + timezone.timedelta(days=(31 if period=="month" else 92))
 
     indicators = Indicator.objects.filter(is_active=True)
@@ -103,3 +118,31 @@ class AuditViewSet(viewsets.ViewSet):
 @permission_classes([permissions.AllowAny])
 def health_check(request):
   return Response({"status": "ok"})
+
+from django.contrib.auth import authenticate, login, logout
+
+@api_view(["POST"])
+@permission_classes([permissions.AllowAny])
+def login_view(request):
+    username = request.data.get("username")
+    password = request.data.get("password")
+    user = authenticate(request, username=username, password=password)
+    if user:
+        login(request, user)
+        return Response({"detail": "Logged in", "username": user.username})
+    return Response({"detail": "Invalid credentials"}, status=400)
+
+@api_view(["POST"])
+def logout_view(request):
+    logout(request)
+    return Response({"detail": "Logged out"})
+
+@api_view(["GET"])
+@permission_classes([permissions.AllowAny])
+def user_info(request):
+    # This also acts as a CSRF cookie setter if we ensure CSRF token is sent
+    from django.middleware.csrf import get_token
+    csrf_token = get_token(request)
+    if request.user.is_authenticated:
+        return Response({"isAuthenticated": True, "username": request.user.username, "csrfToken": csrf_token})
+    return Response({"isAuthenticated": False, "csrfToken": csrf_token})
