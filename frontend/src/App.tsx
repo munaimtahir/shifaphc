@@ -11,25 +11,30 @@ import EvidenceUpload from './pages/EvidenceUpload';
 import AuditDashboard from './pages/AuditDashboard';
 import ImportIndicators from './pages/ImportIndicators';
 
+import { ToastProvider } from './components/Toast';
+
 export default function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route element={<Layout />}>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/indicators/:id" element={<IndicatorDetail />} />
+      <ToastProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route element={<Layout />}>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/indicators/:id" element={<IndicatorDetail />} />
 
-            <Route element={<ProtectedRoute />}>
-              <Route path="/compliance/new" element={<ComplianceForm />} />
-              <Route path="/evidence/upload" element={<EvidenceUpload />} />
-              <Route path="/indicators/import" element={<ImportIndicators />} />
-              <Route path="/audit" element={<AuditDashboard />} />
+              <Route element={<ProtectedRoute />}>
+                <Route path="/compliance/new" element={<ComplianceForm />} />
+                <Route path="/compliance/:id/edit" element={<ComplianceForm />} />
+                <Route path="/evidence/upload" element={<EvidenceUpload />} />
+                <Route path="/indicators/import" element={<ImportIndicators />} />
+                <Route path="/audit" element={<AuditDashboard />} />
+              </Route>
             </Route>
-          </Route>
-        </Routes>
-      </BrowserRouter>
+          </Routes>
+        </BrowserRouter>
+      </ToastProvider>
     </AuthProvider>
   );
 }

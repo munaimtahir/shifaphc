@@ -1,0 +1,46 @@
+# General
+.DS_Store
+.vscode/
+.idea/
+*.log
+
+# Git
+*.orig
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.env
+.env.*
+!env.example
+!.env.example
+env/
+venv/
+.venv/
+
+# Django
+*.sqlite3
+backend/media/
+backend/staticfiles/
+backend/static/
+
+# Frontend / Node
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+tsconfig.tsbuildinfo
+
+# Docker / data
+poster_data/
+volumes/
+data/

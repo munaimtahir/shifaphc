@@ -96,6 +96,12 @@ class ComplianceRecordViewSet(viewsets.ModelViewSet):
       valid_until = compute_valid_until(indicator.frequency, compliant_on)
     serializer.save(created_by=self.request.user, valid_until=valid_until)
 
+  def perform_update(self, serializer):
+    if serializer.validated_data.get("is_revoked") and not serializer.instance.is_revoked:
+      serializer.save(revoked_at=timezone.now())
+    else:
+      serializer.save()
+
 class EvidenceItemViewSet(viewsets.ModelViewSet):
   queryset = EvidenceItem.objects.select_related("indicator","compliance_record").all().order_by("-created_at")
   serializer_class = EvidenceItemSerializer

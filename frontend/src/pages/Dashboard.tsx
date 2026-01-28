@@ -1,60 +1,205 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { fetchIndicators, Indicator } from "../api";
 
 export default function Dashboard() {
     const [items, setItems] = useState<Indicator[]>([]);
     const [q, setQ] = useState("");
+    const [statusFilter, setStatusFilter] = useState("");
     const [loading, setLoading] = useState(true);
+
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(25);
 
     useEffect(() => {
         load();
-    }, []);
+    }, [statusFilter]); // Reload when filter changes
 
     async function load(query?: string) {
         setLoading(true);
         try {
-            const data = await fetchIndicators(query);
+            const data = await fetchIndicators(query || q, statusFilter);
             setItems(data);
-        } catch (e) { console.error(e); }
-        finally { setLoading(false); }
+            setCurrentPage(1); // Reset to first page on new search/filter
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setLoading(false);
+        }
     }
 
-    function onSearch() { load(q); }
+    function onSearch(e: React.FormEvent) {
+        e.preventDefault();
+        load(q);
+    }
+
+    // Client-side pagination logic
+    const paginatedItems = useMemo(() => {
+        const start = (currentPage - 1) * pageSize;
+        return items.slice(start, start + pageSize);
+    }, [items, currentPage, pageSize]);
+
+    const totalPages = Math.ceil(items.length / pageSize);
 
     return (
-        <div>
-            <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-                <input style={{ flex: 1, padding: 8, fontSize: 16, border: "1px solid #ccc", borderRadius: 4 }} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search indicators..." />
-                <button style={{ padding: "8px 16px", backgroundColor: "#0066cc", color: "#fff", border: "none", borderRadius: 4, cursor: "pointer" }} onClick={onSearch}>Search</button>
+        <div style={{ paddingBottom: 40 }}>
+            <div style={{
+                background: 'white', padding: 20, borderRadius: 12, border: '1px solid #eee',
+                marginBottom: 24, boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
+            }}>
+                <form onSubmit={onSearch} style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
+                    <div style={{ flex: 2, minWidth: 200 }}>
+                        <input
+                            style={{
+                                width: "100%", padding: "10px 14px", fontSize: 16,
+                                border: "1px solid #e5e7eb", borderRadius: 8, outline: 'none'
+                            }}
+                            value={q}
+                            onChange={(e) => setQ(e.target.value)}
+                            placeholder="Search by text, section, or standard..."
+                        />
+                    </div>
+
+                    <div style={{ flex: 1, minWidth: 150 }}>
+                        <select
+                            style={{
+                                width: "100%", padding: "10px 14px", fontSize: 16,
+                                border: "1px solid #e5e7eb", borderRadius: 8, outline: 'none',
+                                background: 'white'
+                            }}
+                            value={statusFilter}
+                            onChange={(e) => setStatusFilter(e.target.value)}
+                        >
+                            <option value="">All Statuses</option>
+                            <option value="COMPLIANT">Compliant</option>
+                            <option value="DUE_SOON">Due Soon</option>
+                            <option value="OVERDUE">Overdue</option>
+                            <option value="NOT_STARTED">Not Started</option>
+                        </select>
+                    </div>
+
+                    <button
+                        type="submit"
+                        style={{
+                            padding: "10px 24px", backgroundColor: "#2563eb", color: "#fff",
+                            border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 'bold'
+                        }}
+                    >
+                        Search
+                    </button>
+                </form>
             </div>
 
-            {loading ? <div>Loading...</div> : (
-                <table width="100%" cellPadding={8} style={{ borderCollapse: "collapse" }}>
-                    <thead><tr style={{ textAlign: "left", borderBottom: "2px solid #ddd", background: "#f9f9f9" }}>
-                        <th style={{ padding: 10 }}>Section</th><th>Indicator</th><th>Frequency</th><th>Status</th>
-                    </tr></thead>
-                    <tbody>
-                        {items.map(it => (
-                            <tr key={it.id} style={{ borderBottom: "1px solid #f0f0f0", verticalAlign: "top" }}>
-                                <td style={{ width: 150, padding: 10 }}>{it.section}<br /><span style={{ fontSize: '0.8em', color: '#666' }}>{it.standard}</span></td>
-                                <td style={{ padding: 10 }}>
-                                    <Link to={`/indicators/${it.id}`} style={{ fontWeight: 500, color: "#0066cc", textDecoration: "none" }}>{it.indicator_text}</Link>
-                                </td>
-                                <td style={{ width: 120, padding: 10 }}>{it.frequency}</td>
-                                <td style={{ width: 120, padding: 10 }}>
-                                    <span style={{
-                                        padding: "4px 8px", borderRadius: 4, fontSize: '0.9em',
-                                        backgroundColor: it.due_status === 'COMPLIANT' ? '#e6fffa' : it.due_status === 'OVERDUE' ? '#fff5f5' : '#fffbe6',
-                                        color: it.due_status === 'COMPLIANT' ? '#047857' : it.due_status === 'OVERDUE' ? '#c53030' : '#b7791f'
-                                    }}>
-                                        {it.due_status}
-                                    </span>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+            {loading ? (
+                <div style={{ textAlign: 'center', padding: 40, color: '#6b7280' }}>Loading indicators...</div>
+            ) : (
+                <>
+                    <div style={{
+                        background: 'white', borderRadius: 12, border: '1px solid #e5e7eb',
+                        overflow: 'hidden', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
+                    }}>
+                        <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+                            <thead>
+                                <tr style={{ background: "#f9fafb", borderBottom: "1px solid #e5e7eb" }}>
+                                    <th style={{ padding: "16px 20px", color: "#4b5563", fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase' }}>Section / Standard</th>
+                                    <th style={{ padding: "16px 20px", color: "#4b5563", fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase' }}>Indicator Text</th>
+                                    <th style={{ padding: "16px 20px", color: "#4b5563", fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase' }}>Frequency</th>
+                                    <th style={{ padding: "16px 20px", color: "#4b5563", fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase' }}>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {paginatedItems.map(it => (
+                                    <tr key={it.id} style={{ borderBottom: "1px solid #f3f4f6", verticalAlign: "top" }}>
+                                        <td style={{ padding: "16px 20px", width: 200 }}>
+                                            <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#111827' }}>{it.section}</div>
+                                            <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: 2 }}>{it.standard}</div>
+                                        </td>
+                                        <td style={{ padding: "16px 20px" }}>
+                                            <Link
+                                                to={`/indicators/${it.id}`}
+                                                style={{ fontWeight: 500, color: "#2563eb", textDecoration: "none", lineHeight: 1.4 }}
+                                            >
+                                                {it.indicator_text}
+                                            </Link>
+                                        </td>
+                                        <td style={{ padding: "16px 20px", width: 120, fontSize: '0.9rem', color: '#374151' }}>
+                                            {it.frequency}
+                                        </td>
+                                        <td style={{ padding: "16px 20px", width: 140 }}>
+                                            <span style={{
+                                                display: 'inline-block', padding: "4px 10px", borderRadius: 9999, fontSize: '0.75rem', fontWeight: 600,
+                                                backgroundColor: it.due_status === 'COMPLIANT' ? '#ecfdf5' : it.due_status === 'OVERDUE' ? '#fef2f2' : '#fffbeb',
+                                                color: it.due_status === 'COMPLIANT' ? '#064e3b' : it.due_status === 'OVERDUE' ? '#991b1b' : '#92400e',
+                                                border: `1px solid ${it.due_status === 'COMPLIANT' ? '#d1fae5' : it.due_status === 'OVERDUE' ? '#fee2e2' : '#fef3c7'}`
+                                            }}>
+                                                {it.due_status}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                ))}
+                                {paginatedItems.length === 0 && (
+                                    <tr>
+                                        <td colSpan={4} style={{ padding: 40, textAlign: 'center', color: '#9ca3af' }}>
+                                            No indicators found matching your search.
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* Pagination Controls */}
+                    {totalPages > 1 && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 20 }}>
+                            <div style={{ fontSize: '0.9rem', color: '#6b7280' }}>
+                                Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, items.length)} of {items.length} indicators
+                            </div>
+                            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                <select
+                                    style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid #d1d5db', fontSize: '0.9rem' }}
+                                    value={pageSize}
+                                    onChange={(e) => {
+                                        setPageSize(Number(e.target.value));
+                                        setCurrentPage(1);
+                                    }}
+                                >
+                                    <option value={10}>10 per page</option>
+                                    <option value={25}>25 per page</option>
+                                    <option value={50}>50 per page</option>
+                                    <option value={100}>100 per page</option>
+                                </select>
+                                <div style={{ display: 'flex', border: '1px solid #d1d5db', borderRadius: 6, overflow: 'hidden' }}>
+                                    <button
+                                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                        disabled={currentPage === 1}
+                                        style={{
+                                            padding: '6px 16px', background: 'white', border: 'none',
+                                            borderRight: '1px solid #d1d5db', cursor: currentPage === 1 ? 'default' : 'pointer',
+                                            color: currentPage === 1 ? '#d1d5db' : '#374151'
+                                        }}
+                                    >
+                                        Prev
+                                    </button>
+                                    <div style={{ padding: '6px 16px', background: '#f9fafb', fontSize: '0.9rem', fontWeight: 600 }}>
+                                        {currentPage} / {totalPages}
+                                    </div>
+                                    <button
+                                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                        disabled={currentPage === totalPages}
+                                        style={{
+                                            padding: '6px 16px', background: 'white', border: 'none',
+                                            cursor: currentPage === totalPages ? 'default' : 'pointer',
+                                            color: currentPage === totalPages ? '#d1d5db' : '#374151'
+                                        }}
+                                    >
+                                        Next
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </>
             )}
         </div>
     );

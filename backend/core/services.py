@@ -18,7 +18,7 @@ def compute_valid_until(freq: str, compliant_on):
   return None
 
 def compute_due_status(indicator):
-  lc = indicator.compliance_records.order_by("-compliant_on","-created_at").first()
+  lc = indicator.compliance_records.filter(is_revoked=False).order_by("-compliant_on","-created_at").first()
   today = timezone.localdate()
   if not lc:
     return (None, today, "NOT_STARTED")

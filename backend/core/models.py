@@ -53,8 +53,12 @@ class ComplianceRecord(models.Model):
   compliant_on=models.DateField(default=timezone.localdate)
   valid_until=models.DateField(blank=True, null=True)
   notes=models.TextField(blank=True, null=True)
+  is_revoked=models.BooleanField(default=False)
+  revoked_at=models.DateTimeField(null=True, blank=True)
+  revoked_reason=models.TextField(blank=True, null=True)
   created_by=models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="created_compliance_records")
   created_at=models.DateTimeField(auto_now_add=True)
+  updated_at=models.DateTimeField(auto_now=True)
 
 class EvidenceItem(models.Model):
   id=models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -74,3 +78,15 @@ class EvidenceItem(models.Model):
   )
   created_by=models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="created_evidence_items")
   created_at=models.DateTimeField(auto_now_add=True)
+
+from django.db.models.signals import post_delete
+from django.dispatch import receiver
+
+@receiver(post_delete, sender=EvidenceItem)
+def auto_delete_file_on_delete(sender, instance, **kwargs):
+  if instance.file:
+    try:
+      if instance.file.path and os.path.isfile(instance.file.path):
+        os.remove(instance.file.path)
+    except Exception:
+      pass

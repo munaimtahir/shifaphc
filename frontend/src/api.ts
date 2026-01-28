@@ -62,28 +62,40 @@ export type Indicator = {
   section: string;
   standard: string;
   indicator_text: string;
-  frequency: string;
-  due_status: string;
-  // added fields potentially needed
-  description?: string;
   evidence_required_text?: string;
-  is_active?: boolean;
+  responsible_person?: string;
+  frequency: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  last_compliant_on: string | null;
+  next_due_on: string | null;
+  due_status: "COMPLIANT" | "DUE_SOON" | "OVERDUE" | "NOT_STARTED";
 };
 
 export type ComplianceRecord = {
   id: string;
   indicator: string;
   compliant_on: string;
-  valid_until?: string;
-  note?: string;
+  valid_until: string | null;
+  notes: string | null;
+  is_revoked: boolean;
+  revoked_at: string | null;
+  revoked_reason: string | null;
+  created_by?: string;
   created_at: string;
+  updated_at: string;
 };
 
 export type EvidenceItem = {
   id: string;
-  file?: string;
-  link?: string;
-  note?: string;
+  indicator: string;
+  compliance_record: string | null;
+  type: "NOTE" | "FILE" | "PHOTO" | "SCREENSHOT" | "LINK";
+  note_text: string | null;
+  url: string | null;
+  file: string | null;
+  created_by?: string;
   created_at: string;
 };
 
@@ -96,9 +108,10 @@ export type AuditSummary = {
 
 // -- API Calls --
 
-export async function fetchIndicators(q?: string): Promise<Indicator[]> {
+export async function fetchIndicators(q?: string, status?: string): Promise<Indicator[]> {
   const params = new URLSearchParams();
   if (q) params.set("q", q);
+  if (status) params.set("due_status", status);
   return request(`/api/indicators/?${params.toString()}`);
 }
 
@@ -122,19 +135,42 @@ export async function checkAuth() {
 }
 
 // Compliance
-export async function createCompliance(data: any) {
+export async function createCompliance(data: any): Promise<ComplianceRecord> {
   return request("/api/compliance/", {
     method: "POST",
     body: JSON.stringify(data),
   });
 }
 
+export async function updateCompliance(id: string, data: Partial<ComplianceRecord>): Promise<ComplianceRecord> {
+  return request(`/api/compliance/${id}/`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function revokeCompliance(id: string, reason: string): Promise<ComplianceRecord> {
+  return updateCompliance(id, { is_revoked: true, revoked_reason: reason });
+}
+
 // Evidence
-export async function uploadEvidence(formData: FormData) {
-  // Content-Type header will be set automatically by browser with boundary for FormData
+export async function uploadEvidence(formData: FormData): Promise<EvidenceItem> {
   return request("/api/evidence/", {
     method: "POST",
     body: formData,
+  });
+}
+
+export async function updateEvidence(id: string, data: Partial<EvidenceItem>): Promise<EvidenceItem> {
+  return request(`/api/evidence/${id}/`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteEvidence(id: string) {
+  return request(`/api/evidence/${id}/`, {
+    method: "DELETE",
   });
 }
 
@@ -161,6 +197,10 @@ export function getFileUrl(path?: string) {
 
 export async function fetchComplianceRecords(indicatorId: string): Promise<ComplianceRecord[]> {
   return request(`/api/compliance/?indicator=${indicatorId}`);
+}
+
+export async function fetchComplianceRecord(id: string): Promise<ComplianceRecord> {
+  return request(`/api/compliance/${id}/`);
 }
 
 export async function fetchEvidenceItems(indicatorId: string): Promise<EvidenceItem[]> {

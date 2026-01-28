@@ -26,8 +26,8 @@ class IndicatorSerializer(serializers.ModelSerializer):
 class ComplianceRecordSerializer(serializers.ModelSerializer):
   class Meta:
     model = ComplianceRecord
-    fields = ["id","indicator","compliant_on","valid_until","notes","created_by","created_at"]
-    read_only_fields = ["created_by","created_at"]
+    fields = ["id","indicator","compliant_on","valid_until","notes","is_revoked","revoked_at","revoked_reason","created_by","created_at","updated_at"]
+    read_only_fields = ["created_by","created_at","updated_at","revoked_at"]
 
 class EvidenceItemSerializer(serializers.ModelSerializer):
   class Meta:
