@@ -2,6 +2,19 @@ import uuid
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.utils import timezone
+from django.core.exceptions import ValidationError
+from django.core.validators import FileExtensionValidator
+import os
+
+def validate_file_size(value):
+  limit = 10 * 1024 * 1024  # 10 MB
+  if value.size > limit:
+    raise ValidationError('File too large. Size should not exceed 10 MB.')
+
+def evidence_upload_path(instance, filename):
+  ext = filename.split('.')[-1]
+  filename = f"{uuid.uuid4()}.{ext}"
+  return f"evidence/{filename}"
 
 User = get_user_model()
 
@@ -50,6 +63,14 @@ class EvidenceItem(models.Model):
   type=models.CharField(max_length=16, choices=EvidenceType.choices)
   note_text=models.TextField(blank=True, null=True)
   url=models.URLField(blank=True, null=True)
-  file=models.FileField(upload_to="evidence/", blank=True, null=True)
+  file=models.FileField(
+    upload_to=evidence_upload_path,
+    blank=True,
+    null=True,
+    validators=[
+      FileExtensionValidator(['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png', 'xlsx', 'xls']),
+      validate_file_size
+    ]
+  )
   created_by=models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="created_evidence_items")
   created_at=models.DateTimeField(auto_now_add=True)

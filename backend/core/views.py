@@ -45,19 +45,36 @@ class IndicatorViewSet(viewsets.ModelViewSet):
   def import_csv(self, request):
     if "file" not in request.FILES:
       return Response({"detail":"file is required"}, status=400)
-    f = TextIOWrapper(request.FILES["file"].file, encoding="utf-8")
-    reader = csv.DictReader(f)
-    created = 0
-    for row in reader:
-      Indicator.objects.create(
-        section=(row.get("Section") or "").strip(),
-        standard=(row.get("Standard") or "").strip(),
-        indicator_text=(row.get("Indicator") or "").strip(),
-        evidence_required_text=(row.get("Evidence Required") or "").strip() or None,
-        responsible_person=(row.get("Responsible Person") or "").strip() or None,
-      )
-      created += 1
-    return Response({"created": created})
+    
+    try:
+      f = TextIOWrapper(request.FILES["file"].file, encoding="utf-8")
+      reader = csv.DictReader(f)
+      created = 0
+      errors = []
+      
+      for i, row in enumerate(reader):
+        sec = (row.get("Section") or "").strip()
+        std = (row.get("Standard") or "").strip()
+        ind = (row.get("Indicator") or "").strip()
+        
+        if not sec or not std or not ind:
+          errors.append(f"Row {i+1}: Missing required fields (Section, Standard, or Indicator)")
+          continue
+          
+        Indicator.objects.create(
+          section=sec,
+          standard=std,
+          indicator_text=ind,
+          evidence_required_text=(row.get("Evidence Required") or "").strip() or None,
+          responsible_person=(row.get("Responsible Person") or "").strip() or None,
+        )
+        created += 1
+        
+      if errors:
+        return Response({"created": created, "errors": errors}, status=207 if created > 0 else 400)
+      return Response({"created": created})
+    except Exception as e:
+      return Response({"detail": f"CSV Parse Error: {str(e)}"}, status=400)
 
 class ComplianceRecordViewSet(viewsets.ModelViewSet):
   queryset = ComplianceRecord.objects.select_related("indicator").all().order_by("-compliant_on","-created_at")
