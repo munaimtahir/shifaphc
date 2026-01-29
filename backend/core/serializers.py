@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Indicator, ComplianceRecord, EvidenceItem
+from .models import Indicator, ComplianceRecord, EvidenceItem, AuditLog
 from .services import compute_due_status
 
 class IndicatorSerializer(serializers.ModelSerializer):
@@ -34,3 +34,16 @@ class EvidenceItemSerializer(serializers.ModelSerializer):
     model = EvidenceItem
     fields = ["id","indicator","compliance_record","type","note_text","url","file","created_by","created_at"]
     read_only_fields = ["created_by","created_at"]
+
+class AuditLogSerializer(serializers.ModelSerializer):
+  actor_username = serializers.SerializerMethodField()
+
+  class Meta:
+    model = AuditLog
+    fields = [
+      "id","timestamp","actor","actor_username","action","entity_type","entity_id",
+      "summary","ip_address","user_agent","before","after","metadata"
+    ]
+
+  def get_actor_username(self, obj):
+    return obj.actor.username if obj.actor else None

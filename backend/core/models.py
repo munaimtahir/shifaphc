@@ -79,6 +79,30 @@ class EvidenceItem(models.Model):
   created_by=models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="created_evidence_items")
   created_at=models.DateTimeField(auto_now_add=True)
 
+class AuditAction(models.TextChoices):
+  CREATE="CREATE","Create"
+  UPDATE="UPDATE","Update"
+  REVOKE="REVOKE","Revoke"
+  DELETE="DELETE","Delete"
+  IMPORT="IMPORT","Import"
+  EXPORT_SNAPSHOT="EXPORT_SNAPSHOT","Export Snapshot"
+  LOGIN="LOGIN","Login"
+  LOGOUT="LOGOUT","Logout"
+
+class AuditLog(models.Model):
+  id=models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+  timestamp=models.DateTimeField(auto_now_add=True)
+  actor=models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="audit_logs")
+  action=models.CharField(max_length=32, choices=AuditAction.choices)
+  entity_type=models.CharField(max_length=255)
+  entity_id=models.CharField(max_length=255)
+  summary=models.TextField()
+  ip_address=models.GenericIPAddressField(null=True, blank=True)
+  user_agent=models.TextField(null=True, blank=True)
+  before=models.JSONField(null=True, blank=True)
+  after=models.JSONField(null=True, blank=True)
+  metadata=models.JSONField(null=True, blank=True)
+
 from django.db.models.signals import post_delete
 from django.dispatch import receiver
 

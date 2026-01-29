@@ -106,6 +106,29 @@ export type AuditSummary = {
   counts: { [key: string]: number };
 }
 
+export type AuditLogEntry = {
+  id: string;
+  timestamp: string;
+  actor: string | null;
+  actor_username: string | null;
+  action: string;
+  entity_type: string;
+  entity_id: string;
+  summary: string;
+  ip_address: string | null;
+  user_agent: string | null;
+  before?: any;
+  after?: any;
+  metadata?: any;
+};
+
+export type PaginatedResponse<T> = {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: T[];
+};
+
 // -- API Calls --
 
 export async function fetchIndicators(q?: string, status?: string): Promise<Indicator[]> {
@@ -179,6 +202,22 @@ export async function fetchAuditSummary(start?: string) {
   const params = new URLSearchParams();
   if (start) params.set("start", start);
   return request(`/api/audit/summary/?${params.toString()}`);
+}
+
+export async function fetchAuditLogs(filters: Record<string, string | undefined>): Promise<PaginatedResponse<AuditLogEntry>> {
+  const params = new URLSearchParams();
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value) params.set(key, value);
+  });
+  return request(`/api/audit/logs/?${params.toString()}`);
+}
+
+export function getAuditLogsExportUrl(filters: Record<string, string | undefined>) {
+  const params = new URLSearchParams();
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value) params.set(key, value);
+  });
+  return new URL(`/api/audit/logs/export/?${params.toString()}`, API_BASE).toString();
 }
 
 // Import

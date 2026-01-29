@@ -18,6 +18,9 @@ export default function AuditDashboard() {
     return (
         <div>
             <h2 style={{ marginBottom: 24 }}>Audit Summary</h2>
+            <div style={{ marginBottom: 16 }}>
+                <Link to="/audit/logs" style={{ textDecoration: 'none', color: '#0066cc' }}>View Audit Logs</Link>
+            </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 16 }}>
                 <Link to="/?due_status=DUE_SOON" style={{ textDecoration: 'none' }}>
