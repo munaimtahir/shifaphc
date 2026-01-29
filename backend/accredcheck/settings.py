@@ -78,7 +78,10 @@ MEDIA_URL="/media/"
 MEDIA_ROOT=os.getenv("MEDIA_ROOT", str(BASE_DIR/"media"))
 
 CORS_ALLOWED_ORIGINS=[o.strip() for o in os.getenv("CORS_ALLOWED_ORIGINS","").split(",") if o.strip()]
-CSRF_TRUSTED_ORIGINS=[o.strip() for o in os.getenv("CORS_ALLOWED_ORIGINS","").split(",") if o.strip()]
+if DEBUG:
+  CSRF_TRUSTED_ORIGINS=CORS_ALLOWED_ORIGINS
+else:
+  CSRF_TRUSTED_ORIGINS=[o.replace("http://","https://") for o in CORS_ALLOWED_ORIGINS]
 CORS_ALLOW_CREDENTIALS = True
 
 REST_FRAMEWORK = {
