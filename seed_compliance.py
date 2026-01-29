@@ -4,8 +4,13 @@ from django.utils import timezone
 from datetime import timedelta
 
 User = get_user_model()
-admin = User.objects.get(username='admin')
-contrib1 = User.objects.get(username='contrib1')
+try:
+    admin = User.objects.get(username='admin')
+    contrib1 = User.objects.get(username='contrib1')
+except User.DoesNotExist:
+    print("Required users 'admin' and 'contrib1' do not exist.")
+    print("Please run setup_users.py (or otherwise create these users) before running this script.")
+    exit(1)
 
 indicators = list(Indicator.objects.all())
 
