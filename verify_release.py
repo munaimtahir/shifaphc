@@ -19,7 +19,7 @@ def get_session(user):
 def login(user, password):
     s = get_session(user)
     # Get CSRF token first
-    resp = s.get(f"{BASE_URL}/api/auth/user/")
+    s.get(f"{BASE_URL}/api/auth/user/")
     csrftoken = s.cookies.get('csrftoken')
 
     # Actually use the API login
