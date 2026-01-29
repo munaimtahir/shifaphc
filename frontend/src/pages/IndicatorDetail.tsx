@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
     fetchIndicator, fetchComplianceRecords, fetchEvidenceItems,
     Indicator, ComplianceRecord, EvidenceItem, getFileUrl,
-    revokeCompliance, deleteEvidence
+    revokeCompliance, deleteEvidence, updateEvidence
 } from '../api';
 import { useAuth } from '../auth';
 import { useToast } from '../components/Toast';
