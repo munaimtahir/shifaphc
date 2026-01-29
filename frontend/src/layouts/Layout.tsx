@@ -3,7 +3,7 @@ import { Link, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth';
 
 export default function Layout() {
-    const { user, logout } = useAuth();
+    const { user, logout, isAdmin, isReviewer } = useAuth();
     const navigate = useNavigate();
 
     async function handleLogout() {
@@ -17,10 +17,16 @@ export default function Layout() {
                 <Link to="/" style={{ fontSize: 20, fontWeight: "bold", textDecoration: "none", color: "#333", marginRight: "auto" }}>AccredOS</Link>
                 <Link to="/" style={{ textDecoration: 'none', color: '#0066cc' }}>Dashboard</Link>
                 {user && <Link to="/audit" style={{ textDecoration: 'none', color: '#0066cc' }}>Audit</Link>}
-                {user && <Link to="/indicators/import" style={{ textDecoration: 'none', color: '#0066cc' }}>Import</Link>}
+                {user && <Link to="/audit/logs" style={{ textDecoration: 'none', color: '#0066cc' }}>Logs</Link>}
+                {user && isAdmin && <Link to="/indicators/import" style={{ textDecoration: 'none', color: '#0066cc' }}>Import</Link>}
                 {user ? (
                     <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                        <span style={{ color: '#888' }}>{user.username}</span>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                            <span style={{ fontWeight: 600 }}>{user.username}</span>
+                            <span style={{ fontSize: '0.7rem', color: '#666' }}>
+                                {user.roles.join(', ') || 'No Role'}
+                            </span>
+                        </div>
                         <button onClick={handleLogout} style={{ padding: "6px 12px", cursor: "pointer", border: "1px solid #ddd", background: "#fff", borderRadius: 4 }}>Logout</button>
                     </div>
                 ) : (

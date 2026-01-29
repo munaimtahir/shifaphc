@@ -1,6 +1,30 @@
 from rest_framework import serializers
-from .models import Indicator, ComplianceRecord, EvidenceItem, AuditLog
+from .models import Indicator, ComplianceRecord, EvidenceItem, User, AuditLog
 from .services import compute_due_status
+from django.contrib.auth.models import Group
+
+class AuditLogSerializer(serializers.ModelSerializer):
+    actor_username = serializers.ReadOnlyField(source='actor.username')
+
+    class Meta:
+        model = AuditLog
+        fields = [
+            "id", "timestamp", "actor", "actor_username", "action", "entity_type",
+            "entity_id", "summary", "before_snapshot", "after_snapshot", "metadata",
+            "ip_address", "user_agent"
+        ]
+
+class UserSerializer(serializers.ModelSerializer):
+    roles = serializers.SlugRelatedField(
+        many=True,
+        read_only=True,
+        slug_field='name',
+        source='groups'
+    )
+
+    class Meta:
+        model = User
+        fields = ["id", "username", "email", "roles", "is_staff", "is_active"]
 
 class IndicatorSerializer(serializers.ModelSerializer):
   last_compliant_on = serializers.SerializerMethodField()
