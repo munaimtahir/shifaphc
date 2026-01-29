@@ -120,10 +120,13 @@ def run_all():
     check_routing()
 
     # Login users
-    login('admin', 'password123')
-    login('contrib1', 'password123')
-    login('review1', 'password123')
+    admin_ok = login('admin', 'password123')
+    contrib_ok = login('contrib1', 'password123')
+    review_ok = login('review1', 'password123')
 
+    if not (admin_ok and contrib_ok and review_ok):
+        print("❌ One or more user logins failed. Skipping RBAC and audit log checks.")
+        return
     check_rbac()
     check_audit_logs()
 
