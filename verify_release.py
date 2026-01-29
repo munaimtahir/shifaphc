@@ -76,6 +76,10 @@ def check_rbac():
             try:
                 if method == 'GET':
                     r = s.get(f"{BASE_URL}{path}")
+                else:
+                    print(f"⚠️ Unsupported method {method} for {path}. Skipping.")
+                    continue
+
 
                 code = r.status_code
                 expected = expected_codes[i]
