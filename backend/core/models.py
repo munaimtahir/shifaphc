@@ -33,6 +33,17 @@ class EvidenceType(models.TextChoices):
   SCREENSHOT="SCREENSHOT","Screenshot"
   LINK="LINK","Link"
 
+class AuditAction(models.TextChoices):
+  CREATE="CREATE","Create"
+  UPDATE="UPDATE","Update"
+  REVOKE="REVOKE","Revoke"
+  DELETE="DELETE","Delete"
+  IMPORT="IMPORT","Import"
+  EXPORT_SNAPSHOT="EXPORT_SNAPSHOT","Export Snapshot"
+  LOGIN="LOGIN","Login"
+  LOGOUT="LOGOUT","Logout"
+
+
 class Indicator(models.Model):
   id=models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
   section=models.TextField()
@@ -79,15 +90,6 @@ class EvidenceItem(models.Model):
   created_by=models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="created_evidence_items")
   created_at=models.DateTimeField(auto_now_add=True)
 
-class AuditAction(models.TextChoices):
-  CREATE="CREATE","Create"
-  UPDATE="UPDATE","Update"
-  REVOKE="REVOKE","Revoke"
-  DELETE="DELETE","Delete"
-  IMPORT="IMPORT","Import"
-  EXPORT_SNAPSHOT="EXPORT_SNAPSHOT","Export Snapshot"
-  LOGIN="LOGIN","Login"
-  LOGOUT="LOGOUT","Logout"
 
 class AuditLog(models.Model):
   id=models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
