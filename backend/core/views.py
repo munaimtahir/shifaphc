@@ -6,10 +6,10 @@ from django.http import HttpResponse
 from django.utils import timezone
 from rest_framework import viewsets, permissions, pagination
 from rest_framework.decorators import action, api_view, permission_classes
-from .permissions import IsAdmin, IsContributorOrAdmin, IsReviewerOrHigher, ReadOnly
+from .permissions import IsAdmin, IsContributorOrAdmin, IsReviewerOrHigher, ReadOnly, IsAdminOrReviewer
 from rest_framework.response import Response
 
-from .models import Indicator, ComplianceRecord, EvidenceItem, User, AuditLog
+from .models import Indicator, ComplianceRecord, EvidenceItem, User, AuditLog, AuditAction
 from .serializers import (
     IndicatorSerializer, ComplianceRecordSerializer, EvidenceItemSerializer, 
     UserSerializer, AuditLogSerializer

@@ -27,6 +27,21 @@ class IsAdminOrReviewer(BasePermission):
         return is_admin(request.user) or is_reviewer(request.user)
 
 
+class IsReviewerOrHigher(BasePermission):
+    def has_permission(self, request, view):
+        return is_admin(request.user) or is_reviewer(request.user)
+
+
+class IsContributorOrAdmin(BasePermission):
+    def has_permission(self, request, view):
+        return is_admin(request.user) or is_contributor(request.user)
+
+
+class ReadOnly(BasePermission):
+    def has_permission(self, request, view):
+        return request.method in SAFE_METHODS
+
+
 class ReadOnlyOrAdminContributor(BasePermission):
     def has_permission(self, request, view):
         if request.method in SAFE_METHODS:
