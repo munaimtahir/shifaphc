@@ -2,7 +2,6 @@ from core.models import Indicator, ComplianceRecord, EvidenceItem, EvidenceType
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from datetime import timedelta
-import random
 
 User = get_user_model()
 admin = User.objects.get(username='admin')
