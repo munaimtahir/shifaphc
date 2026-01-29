@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Indicator, ComplianceRecord, EvidenceItem
+from .models import Indicator, ComplianceRecord, EvidenceItem, AuditLog
 
 @admin.register(Indicator)
 class IndicatorAdmin(admin.ModelAdmin):
@@ -16,3 +16,9 @@ class ComplianceRecordAdmin(admin.ModelAdmin):
 class EvidenceItemAdmin(admin.ModelAdmin):
   list_display=("indicator","type","created_at")
   list_filter=("type",)
+
+@admin.register(AuditLog)
+class AuditLogAdmin(admin.ModelAdmin):
+  list_display=("timestamp","actor","action","entity_type","entity_id")
+  list_filter=("action","entity_type","timestamp")
+  search_fields=("summary","entity_id","actor__username")

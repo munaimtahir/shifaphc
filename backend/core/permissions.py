@@ -1,29 +1,34 @@
-from rest_framework import permissions
+from rest_framework.permissions import BasePermission, SAFE_METHODS
 
-class IsAdmin(permissions.BasePermission):
-    def has_permission(self, request, view):
-        return request.user and request.user.is_authenticated and request.user.groups.filter(name='Admin').exists()
 
-class IsContributor(permissions.BasePermission):
-    def has_permission(self, request, view):
-        return request.user and request.user.is_authenticated and request.user.groups.filter(name='Contributor').exists()
+def _in_group(user, name: str) -> bool:
+    return user and user.is_authenticated and user.groups.filter(name=name).exists()
 
-class IsReviewer(permissions.BasePermission):
-    def has_permission(self, request, view):
-        return request.user and request.user.is_authenticated and request.user.groups.filter(name='Reviewer').exists()
 
-class IsContributorOrAdmin(permissions.BasePermission):
-    def has_permission(self, request, view):
-        if not (request.user and request.user.is_authenticated):
-            return False
-        return request.user.groups.filter(name__in=['Admin', 'Contributor']).exists()
+def is_admin(user) -> bool:
+    return user and user.is_authenticated and (user.is_superuser or _in_group(user, "Admin"))
 
-class IsReviewerOrHigher(permissions.BasePermission):
-    def has_permission(self, request, view):
-        if not (request.user and request.user.is_authenticated):
-            return False
-        return request.user.groups.filter(name__in=['Admin', 'Contributor', 'Reviewer']).exists()
 
-class ReadOnly(permissions.BasePermission):
+def is_reviewer(user) -> bool:
+    return _in_group(user, "Reviewer")
+
+
+def is_contributor(user) -> bool:
+    return _in_group(user, "Contributor")
+
+
+class IsAdmin(BasePermission):
     def has_permission(self, request, view):
-        return request.method in permissions.SAFE_METHODS
+        return is_admin(request.user)
+
+
+class IsAdminOrReviewer(BasePermission):
+    def has_permission(self, request, view):
+        return is_admin(request.user) or is_reviewer(request.user)
+
+
+class ReadOnlyOrAdminContributor(BasePermission):
+    def has_permission(self, request, view):
+        if request.method in SAFE_METHODS:
+            return request.user.is_authenticated
+        return is_admin(request.user) or is_contributor(request.user)

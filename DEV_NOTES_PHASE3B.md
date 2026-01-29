@@ -1,36 +1,19 @@
-# DEV NOTES - PHASE 3B (Governance & Trust)
+# DEV NOTES — Phase 3B (Prod Config & API Sanity)
 
-## Progress Checklist
-- [x] Task 0: Repo discovery & policy lock
-- [x] Task 1: RBAC (Roles & Permission Enforcement)
-- [x] Task 2: Audit Logging (Mutation Ledger)
-- [x] Task 3: Audit Log UI + Search + Export
-- [x] Task 4: Reviewer Mode (Read-only Experience)
-- [x] Task 5: Audit Snapshot Export (Executive-ready)
-- [x] Task 6: Security & Compliance Hardening Checks
-- [x] Task 7: Testing & Docker Validation
+## CORS/CSRF production sanity
+- `CORS_ALLOWED_ORIGINS` is read from `CORS_ALLOWED_ORIGINS` env var.
+- `CSRF_TRUSTED_ORIGINS` is derived from `CORS_ALLOWED_ORIGINS`, with HTTPS enforced when `DJANGO_DEBUG=0`.
+- `CORS_ALLOW_CREDENTIALS=True` to support session auth; ensure only trusted origins are listed.
 
-## Implementation Notes
+**Prod check for sos.alshifalab.pk**
+- Ensure `CORS_ALLOWED_ORIGINS` includes `https://sos.alshifalab.pk`.
+- Validate `CSRF_TRUSTED_ORIGINS` resolves to `https://sos.alshifalab.pk`.
 
-### RBAC Approach
-- Using Django Groups: `Admin`, `Contributor`, `Reviewer`.
-- Custom DRF Permission Classes: `IsAdmin`, `IsContributorOrAdmin`, `IsReviewerOrHigher`.
-- Frontend role-gating using `useAuth` hook and `canMutate` / `isReviewer` properties.
-
-### Audit Logging
-- New `AuditLog` model with `UUID` primary key for immutability-lite.
-- Captures actor, action, timestamp, entity details, and before/after JSON snapshots.
-- `log_audit` utility with JSON sanitization (handling UUIDs/datetimes).
-- Actions logged: CREATE, UPDATE, DELETE, REVOKE, IMPORT, ASSIGN_ROLE, DOWNLOAD_EVIDENCE, EXPORT_LOGS, EXPORT_SNAPSHOT.
-
-### Snapshot Export
-- `/api/audit/snapshot/` generates a point-in-time state of all indicators, their status, and latest evidence.
-- Frontend `/audit/snapshot` page with CSV export and Print-to-PDF support.
-
-### Security Hardening
-- Secure download endpoint `/api/evidence/:id/download/` prevents unauthenticated access to media files.
-- RBAC strictly enforced on the backend; frontend hides mutation controls for Reviewers.
-
-### Testing
-- Automated tests in `core/tests/test_rbac.py` and `core/tests/test_audit.py`.
-- Verified 100% pass rate in Docker environment.
+## `/api/*` routing sanity + health check
+Use these commands in production or staging:
+```bash
+curl -i https://sos.alshifalab.pk/api/health/
+curl -i https://sos.alshifalab.pk/api/audit/logs/
+curl -i https://sos.alshifalab.pk/api/audit/snapshot/
+```
+Expected: JSON responses from the backend (not SPA HTML).

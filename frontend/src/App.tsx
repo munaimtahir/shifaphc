@@ -12,6 +12,7 @@ import AuditDashboard from './pages/AuditDashboard';
 import AuditLogs from './pages/AuditLogs';
 import AuditSnapshot from './pages/AuditSnapshot';
 import ImportIndicators from './pages/ImportIndicators';
+import AuditLogs from './pages/AuditLogs';
 
 import { ToastProvider } from './components/Toast';
 

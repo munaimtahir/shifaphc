@@ -204,6 +204,22 @@ export async function fetchAuditSummary(start?: string) {
   return request(`/api/audit/summary/?${params.toString()}`);
 }
 
+export async function fetchAuditLogs(filters: Record<string, string | undefined>): Promise<PaginatedResponse<AuditLogEntry>> {
+  const params = new URLSearchParams();
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value) params.set(key, value);
+  });
+  return request(`/api/audit/logs/?${params.toString()}`);
+}
+
+export function getAuditLogsExportUrl(filters: Record<string, string | undefined>) {
+  const params = new URLSearchParams();
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value) params.set(key, value);
+  });
+  return new URL(`/api/audit/logs/export/?${params.toString()}`, API_BASE).toString();
+}
+
 // Import
 export async function importIndicators(formData: FormData) {
   return request("/api/indicators/import/", {
