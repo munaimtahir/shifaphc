@@ -9,6 +9,8 @@ import IndicatorDetail from './pages/IndicatorDetail';
 import ComplianceForm from './pages/ComplianceForm';
 import EvidenceUpload from './pages/EvidenceUpload';
 import AuditDashboard from './pages/AuditDashboard';
+import AuditLogs from './pages/AuditLogs';
+import AuditSnapshot from './pages/AuditSnapshot';
 import ImportIndicators from './pages/ImportIndicators';
 
 import { ToastProvider } from './components/Toast';
@@ -30,6 +32,8 @@ export default function App() {
                 <Route path="/evidence/upload" element={<EvidenceUpload />} />
                 <Route path="/indicators/import" element={<ImportIndicators />} />
                 <Route path="/audit" element={<AuditDashboard />} />
+                <Route path="/audit/logs" element={<AuditLogs />} />
+                <Route path="/audit/snapshot" element={<AuditSnapshot />} />
               </Route>
             </Route>
           </Routes>

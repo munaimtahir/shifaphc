@@ -4,11 +4,69 @@ from django.db.models import Q
 from django.utils import timezone
 from rest_framework import viewsets, permissions
 from rest_framework.decorators import action, api_view, permission_classes
+from .permissions import IsAdmin, IsContributorOrAdmin, IsReviewerOrHigher, ReadOnly
 from rest_framework.response import Response
 
-from .models import Indicator, ComplianceRecord, EvidenceItem
-from .serializers import IndicatorSerializer, ComplianceRecordSerializer, EvidenceItemSerializer
+from .models import Indicator, ComplianceRecord, EvidenceItem, User, AuditLog
+from .serializers import (
+    IndicatorSerializer, ComplianceRecordSerializer, EvidenceItemSerializer, 
+    UserSerializer, AuditLogSerializer
+)
 from .services import compute_valid_until, compute_due_status
+from .utils import log_audit
+from django.contrib.auth.models import Group
+from django.http import HttpResponse
+
+class UserViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all().order_by("username")
+    serializer_class = UserSerializer
+    permission_classes = [IsAdmin]
+
+    @action(detail=True, methods=["post"], url_path="assign-role")
+    def assign_role(self, request, pk=None):
+        user = self.get_object()
+        role_name = request.data.get("role")
+        if not role_name:
+            return Response({"detail": "Role name is required"}, status=400)
+        
+        try:
+            group = Group.objects.get(name=role_name)
+            user.groups.add(group)
+            log_audit(
+                actor=request.user,
+                action="ASSIGN_ROLE",
+                entity_type="User",
+                entity_id=user.id,
+                summary=f"Assigned role {role_name} to {user.username}",
+                metadata={"role": role_name},
+                request=request
+            )
+            return Response({"detail": f"Role {role_name} assigned to {user.username}"})
+        except Group.DoesNotExist:
+            return Response({"detail": f"Role {role_name} does not exist"}, status=400)
+
+    @action(detail=True, methods=["post"], url_path="remove-role")
+    def remove_role(self, request, pk=None):
+        user = self.get_object()
+        role_name = request.data.get("role")
+        if not role_name:
+            return Response({"detail": "Role name is required"}, status=400)
+        
+        try:
+            group = Group.objects.get(name=role_name)
+            user.groups.remove(group)
+            log_audit(
+                actor=request.user,
+                action="REMOVE_ROLE",
+                entity_type="User",
+                entity_id=user.id,
+                summary=f"Removed role {role_name} from {user.username}",
+                metadata={"role": role_name},
+                request=request
+            )
+            return Response({"detail": f"Role {role_name} removed from {user.username}"})
+        except Group.DoesNotExist:
+            return Response({"detail": f"Role {role_name} does not exist"}, status=400)
 
 class IndicatorViewSet(viewsets.ModelViewSet):
   queryset = Indicator.objects.all().order_by("section","standard")
@@ -18,7 +76,9 @@ class IndicatorViewSet(viewsets.ModelViewSet):
   def get_permissions(self):
     if self.action in ["list", "retrieve"]:
       return [permissions.AllowAny()]
-    return [permissions.IsAuthenticated()]
+    if self.action == "import_csv":
+      return [IsAdmin()]
+    return [IsContributorOrAdmin()]
 
   def get_queryset(self):
     qs = super().get_queryset()
@@ -71,7 +131,24 @@ class IndicatorViewSet(viewsets.ModelViewSet):
         created += 1
         
       if errors:
+        log_audit(
+            actor=request.user,
+            action="IMPORT",
+            entity_type="Indicator",
+            summary=f"Bulk import finished with {created} successes and {len(errors)} errors",
+            metadata={"errors": errors, "created_count": created},
+            request=request
+        )
         return Response({"created": created, "errors": errors}, status=207 if created > 0 else 400)
+      
+      log_audit(
+          actor=request.user,
+          action="IMPORT",
+          entity_type="Indicator",
+          summary=f"Bulk import finished successfully: {created} indicators created",
+          metadata={"created_count": created},
+          request=request
+      )
       return Response({"created": created})
     except Exception as e:
       return Response({"detail": f"CSV Parse Error: {str(e)}"}, status=400)
@@ -79,7 +156,12 @@ class IndicatorViewSet(viewsets.ModelViewSet):
 class ComplianceRecordViewSet(viewsets.ModelViewSet):
   queryset = ComplianceRecord.objects.select_related("indicator").all().order_by("-compliant_on","-created_at")
   serializer_class = ComplianceRecordSerializer
-  permission_classes = [permissions.IsAuthenticated]
+  permission_classes = [IsReviewerOrHigher]
+
+  def get_permissions(self):
+    if self.request.method in permissions.SAFE_METHODS:
+      return [IsReviewerOrHigher()]
+    return [IsContributorOrAdmin()]
 
   def get_queryset(self):
     qs = super().get_queryset()
@@ -94,18 +176,48 @@ class ComplianceRecordViewSet(viewsets.ModelViewSet):
     valid_until = serializer.validated_data.get("valid_until")
     if valid_until is None:
       valid_until = compute_valid_until(indicator.frequency, compliant_on)
-    serializer.save(created_by=self.request.user, valid_until=valid_until)
+    instance = serializer.save(created_by=self.request.user, valid_until=valid_until)
+    log_audit(
+        actor=self.request.user,
+        action="CREATE",
+        entity_type="ComplianceRecord",
+        entity_id=instance.id,
+        summary=f"Created compliance record for indicator {indicator.id}",
+        after=serializer.data,
+        request=self.request
+    )
 
   def perform_update(self, serializer):
+    before = ComplianceRecordSerializer(serializer.instance).data
     if serializer.validated_data.get("is_revoked") and not serializer.instance.is_revoked:
-      serializer.save(revoked_at=timezone.now())
+      instance = serializer.save(revoked_at=timezone.now())
+      action = "REVOKE"
+      summary = f"Revoked compliance record {instance.id}"
     else:
-      serializer.save()
+      instance = serializer.save()
+      action = "UPDATE"
+      summary = f"Updated compliance record {instance.id}"
+    
+    log_audit(
+        actor=self.request.user,
+        action=action,
+        entity_type="ComplianceRecord",
+        entity_id=instance.id,
+        summary=summary,
+        before=before,
+        after=serializer.data,
+        request=self.request
+    )
 
 class EvidenceItemViewSet(viewsets.ModelViewSet):
   queryset = EvidenceItem.objects.select_related("indicator","compliance_record").all().order_by("-created_at")
   serializer_class = EvidenceItemSerializer
-  permission_classes = [permissions.IsAuthenticated]
+  permission_classes = [IsReviewerOrHigher]
+
+  def get_permissions(self):
+    if self.request.method in permissions.SAFE_METHODS:
+      return [IsReviewerOrHigher()]
+    return [IsContributorOrAdmin()]
 
   def get_queryset(self):
     qs = super().get_queryset()
@@ -115,10 +227,184 @@ class EvidenceItemViewSet(viewsets.ModelViewSet):
     return qs
 
   def perform_create(self, serializer):
-    serializer.save(created_by=self.request.user)
+    instance = serializer.save(created_by=self.request.user)
+    log_audit(
+        actor=self.request.user,
+        action="CREATE",
+        entity_type="EvidenceItem",
+        entity_id=instance.id,
+        summary=f"Uploaded evidence for indicator {instance.indicator.id}",
+        after=serializer.data,
+        request=self.request
+    )
+
+  def perform_destroy(self, instance):
+    before = EvidenceItemSerializer(instance).data
+    entity_id = instance.id
+    instance.delete()
+    log_audit(
+        actor=self.request.user,
+        action="DELETE",
+        entity_type="EvidenceItem",
+        entity_id=entity_id,
+        summary=f"Deleted evidence item {entity_id}",
+        before=before,
+        request=self.request
+    )
+
+  @action(detail=True, methods=["get"], url_path="download")
+  def download(self, request, pk=None):
+    instance = self.get_object()
+    if not instance.file:
+        return Response({"detail": "No file associated with this record"}, status=404)
+    
+    # We rely on ViewSet permission classes (IsReviewerOrHigher) for access control
+    
+    file_handle = instance.file.open()
+    response = HttpResponse(file_handle, content_type='application/octet-stream')
+    response['Content-Disposition'] = f'attachment; filename="{instance.file.name.split("/")[-1]}"'
+    
+    log_audit(
+        actor=request.user,
+        action="DOWNLOAD_EVIDENCE",
+        entity_type="EvidenceItem",
+        entity_id=instance.id,
+        summary=f"Downloaded evidence file for indicator {instance.indicator.id}",
+        request=request
+    )
+    
+    return response
 
 class AuditViewSet(viewsets.ViewSet):
-  permission_classes = [permissions.IsAuthenticated]
+  permission_classes = [IsReviewerOrHigher]
+
+  @action(detail=False, methods=["get"], url_path="logs")
+  def logs(self, request):
+    queryset = AuditLog.objects.all()
+    
+    actor = request.query_params.get("actor")
+    action_type = request.query_params.get("action")
+    entity_type = request.query_params.get("entity_type")
+    q = request.query_params.get("q")
+    start_date = request.query_params.get("start_date")
+    end_date = request.query_params.get("end_date")
+
+    if actor: queryset = queryset.filter(actor_id=actor)
+    if action_type: queryset = queryset.filter(action=action_type)
+    if entity_type: queryset = queryset.filter(entity_type=entity_type)
+    if q: queryset = queryset.filter(summary__icontains=q)
+    if start_date: queryset = queryset.filter(timestamp__date__gte=start_date)
+    if end_date: queryset = queryset.filter(timestamp__date__lte=end_date)
+
+    from django.core.paginator import Paginator
+    page_size = request.query_params.get("page_size", 50)
+    page_number = request.query_params.get("page", 1)
+    paginator = Paginator(queryset, page_size)
+    page_obj = paginator.get_page(page_number)
+
+    serializer = AuditLogSerializer(page_obj, many=True)
+    return Response({
+        "results": serializer.data,
+        "count": paginator.count,
+        "num_pages": paginator.num_pages,
+        "current_page": page_obj.number
+    })
+
+  @action(detail=False, methods=["get"], url_path="logs/export")
+  def export_logs(self, request):
+    queryset = AuditLog.objects.all()
+    actor = request.query_params.get("actor")
+    action_type = request.query_params.get("action")
+    entity_type = request.query_params.get("entity_type")
+    q = request.query_params.get("q")
+    start_date = request.query_params.get("start_date")
+    end_date = request.query_params.get("end_date")
+
+    if actor: queryset = queryset.filter(actor_id=actor)
+    if action_type: queryset = queryset.filter(action=action_type)
+    if entity_type: queryset = queryset.filter(entity_type=entity_type)
+    if q: queryset = queryset.filter(summary__icontains=q)
+    if start_date: queryset = queryset.filter(timestamp__date__gte=start_date)
+    if end_date: queryset = queryset.filter(timestamp__date__lte=end_date)
+
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="audit_logs.csv"'
+    
+    writer = csv.writer(response)
+    writer.writerow(['Timestamp', 'Actor', 'Action', 'Entity', 'Summary', 'IP Address'])
+    
+    for log in queryset:
+        writer.writerow([
+            log.timestamp.isoformat(),
+            log.actor.username if log.actor else "System",
+            log.action,
+            f"{log.entity_type} ({log.entity_id})",
+            log.summary,
+            log.ip_address or ""
+        ])
+    
+    log_audit(
+        actor=request.user,
+        action="EXPORT_LOGS",
+        entity_type="AuditLog",
+        summary="Exported audit logs to CSV",
+        request=request
+    )
+    
+    return response
+
+  @action(detail=False, methods=["get"], url_path="snapshot")
+  def snapshot(self, request):
+    indicators = Indicator.objects.filter(is_active=True).order_by("section", "standard")
+    
+    snapshot_data = []
+    summary_counts = {"COMPLIANT": 0, "DUE_SOON": 0, "OVERDUE": 0, "NOT_STARTED": 0}
+    
+    for ind in indicators:
+      last_date, next_due, status = compute_due_status(ind)
+      summary_counts[status] += 1
+      
+      # Get latest compliance records
+      recs = ind.compliance_records.filter(is_revoked=False).order_by("-compliant_on")[:3]
+      rec_data = ComplianceRecordSerializer(recs, many=True).data
+      
+      # Get evidence pointers
+      evs = ind.evidence_items.all().order_by("-created_at")
+      ev_data = []
+      for ev in evs:
+          ev_data.append({
+              "id": ev.id,
+              "type": ev.type,
+              "created_at": ev.created_at,
+              "filename": ev.file.name.split('/')[-1] if ev.file else None,
+              "url": ev.url
+          })
+          
+      snapshot_data.append({
+          "indicator_id": ind.id,
+          "section": ind.section,
+          "standard": ind.standard,
+          "text": ind.indicator_text,
+          "status": status,
+          "last_compliant": last_date,
+          "next_due": next_due,
+          "compliance_history": rec_data,
+          "evidence": ev_data
+      })
+      
+    log_audit(
+        actor=request.user,
+        action="EXPORT_SNAPSHOT",
+        entity_type="AuditLog",
+        summary="Generated compliance snapshot",
+        request=request
+    )
+    
+    return Response({
+        "timestamp": timezone.now(),
+        "summary": summary_counts,
+        "indicators": snapshot_data
+    })
 
   @action(detail=False, methods=["get"], url_path="summary")
   def summary(self, request):
@@ -152,7 +438,8 @@ def login_view(request):
     user = authenticate(request, username=username, password=password)
     if user:
         login(request, user)
-        return Response({"detail": "Logged in", "username": user.username})
+        roles = list(user.groups.values_list('name', flat=True))
+        return Response({"detail": "Logged in", "username": user.username, "roles": roles})
     return Response({"detail": "Invalid credentials"}, status=400)
 
 @api_view(["POST"])
@@ -167,5 +454,6 @@ def user_info(request):
     from django.middleware.csrf import get_token
     csrf_token = get_token(request)
     if request.user.is_authenticated:
-        return Response({"isAuthenticated": True, "username": request.user.username, "csrfToken": csrf_token})
+        roles = list(request.user.groups.values_list('name', flat=True))
+        return Response({"isAuthenticated": True, "username": request.user.username, "roles": roles, "csrfToken": csrf_token})
     return Response({"isAuthenticated": False, "csrfToken": csrf_token})

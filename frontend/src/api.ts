@@ -106,6 +106,29 @@ export type AuditSummary = {
   counts: { [key: string]: number };
 }
 
+export type AuditLog = {
+  id: string;
+  timestamp: string;
+  actor: string | null;
+  actor_username: string | null;
+  action: string;
+  entity_type: string;
+  entity_id: string | null;
+  summary: string;
+  before_snapshot: any;
+  after_snapshot: any;
+  metadata: any;
+  ip_address: string | null;
+  user_agent: string | null;
+};
+
+export type PaginatedResponse<T> = {
+  results: T[];
+  count: number;
+  num_pages: number;
+  current_page: number;
+};
+
 // -- API Calls --
 
 export async function fetchIndicators(q?: string, status?: string): Promise<Indicator[]> {
@@ -195,6 +218,10 @@ export function getFileUrl(path?: string) {
   return new URL(path, API_BASE).toString();
 }
 
+export function getSecureDownloadUrl(id: string) {
+  return `${API_BASE}/api/evidence/${id}/download/`;
+}
+
 export async function fetchComplianceRecords(indicatorId: string): Promise<ComplianceRecord[]> {
   return request(`/api/compliance/?indicator=${indicatorId}`);
 }
@@ -205,4 +232,19 @@ export async function fetchComplianceRecord(id: string): Promise<ComplianceRecor
 
 export async function fetchEvidenceItems(indicatorId: string): Promise<EvidenceItem[]> {
   return request(`/api/evidence/?indicator=${indicatorId}`);
+}
+
+export async function fetchAuditLogs(params: Record<string, any>): Promise<PaginatedResponse<AuditLog>> {
+  const searchParams = new URLSearchParams(params as any);
+  return request(`/api/audit/logs/?${searchParams.toString()}`);
+}
+
+export function getExportLogsUrl(params: Record<string, any>) {
+  const searchParams = new URLSearchParams(params as any);
+  return `${API_BASE}/api/audit/logs/export/?${searchParams.toString()}`;
+}
+
+export async function fetchAuditSnapshot(params: Record<string, any>): Promise<any> {
+  const searchParams = new URLSearchParams(params as any);
+  return request(`/api/audit/snapshot/?${searchParams.toString()}`);
 }

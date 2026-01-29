@@ -17,7 +17,12 @@ export default function AuditDashboard() {
 
     return (
         <div>
-            <h2 style={{ marginBottom: 24 }}>Audit Summary</h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+                <h2 style={{ margin: 0 }}>Audit Summary</h2>
+                <Link to="/audit/snapshot" style={{ padding: "10px 20px", background: "#4f46e5", color: "white", borderRadius: 8, textDecoration: "none", fontWeight: 600 }}>
+                    Generate Compliance Snapshot
+                </Link>
+            </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 16 }}>
                 <Link to="/?due_status=DUE_SOON" style={{ textDecoration: 'none' }}>

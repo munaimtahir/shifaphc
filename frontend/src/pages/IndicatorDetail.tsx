@@ -2,15 +2,15 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
     fetchIndicator, fetchComplianceRecords, fetchEvidenceItems,
-    Indicator, ComplianceRecord, EvidenceItem, getFileUrl,
-    revokeCompliance, deleteEvidence
+    Indicator, ComplianceRecord, EvidenceItem, getSecureDownloadUrl,
+    revokeCompliance, deleteEvidence, updateEvidence
 } from '../api';
 import { useAuth } from '../auth';
 import { useToast } from '../components/Toast';
 
 export default function IndicatorDetail() {
     const { id } = useParams<{ id: string }>();
-    const { user } = useAuth();
+    const { user, canMutate, isReviewer } = useAuth();
     const { showToast } = useToast();
     const navigate = useNavigate();
 
@@ -150,19 +150,25 @@ export default function IndicatorDetail() {
                     padding: '12px 0', borderBottom: '1px solid #eee',
                     marginBottom: 24, display: 'flex', gap: 12, alignItems: 'center'
                 }}>
-                    <div style={{ fontWeight: 'bold', marginRight: 'auto' }}>Workbench Actions</div>
-                    <Link to={`/compliance/new?indicator=${indicator.id}`} style={{
-                        padding: "8px 16px", backgroundColor: "#059669", color: "#fff",
-                        textDecoration: "none", borderRadius: 6, fontSize: '0.9rem', fontWeight: 500
-                    }}>
-                        + Add Compliance
-                    </Link>
-                    <Link to={`/evidence/upload?indicator=${indicator.id}`} style={{
-                        padding: "8px 16px", backgroundColor: "#2563eb", color: "#fff",
-                        textDecoration: "none", borderRadius: 6, fontSize: '0.9rem', fontWeight: 500
-                    }}>
-                        + Upload Evidence
-                    </Link>
+                    <div style={{ fontWeight: 'bold', marginRight: 'auto' }}>
+                        Workbench {isReviewer && <span style={{ color: '#6b7280', fontSize: '0.8rem', fontWeight: 'normal', marginLeft: 8 }}>(Read-only)</span>}
+                    </div>
+                    {canMutate && (
+                        <>
+                            <Link to={`/compliance/new?indicator=${indicator.id}`} style={{
+                                padding: "8px 16px", backgroundColor: "#059669", color: "#fff",
+                                textDecoration: "none", borderRadius: 6, fontSize: '0.9rem', fontWeight: 500
+                            }}>
+                                + Add Compliance
+                            </Link>
+                            <Link to={`/evidence/upload?indicator=${indicator.id}`} style={{
+                                padding: "8px 16px", backgroundColor: "#2563eb", color: "#fff",
+                                textDecoration: "none", borderRadius: 6, fontSize: '0.9rem', fontWeight: 500
+                            }}>
+                                + Upload Evidence
+                            </Link>
+                        </>
+                    )}
                     <Link to="/audit" style={{
                         padding: "8px 16px", backgroundColor: "#f3f4f6", color: "#374151",
                         textDecoration: "none", borderRadius: 6, fontSize: '0.9rem', border: '1px solid #d1d5db'
@@ -253,7 +259,7 @@ export default function IndicatorDetail() {
                                             )}
                                         </div>
                                         <div style={{ display: 'flex', gap: 8 }}>
-                                            {!r.is_revoked && (
+                                            {!r.is_revoked && canMutate && (
                                                 <>
                                                     <button
                                                         onClick={() => navigate(`/compliance/${r.id}/edit`)}
@@ -319,7 +325,7 @@ export default function IndicatorDetail() {
                                             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                                 <div style={{ fontWeight: 500 }}>
                                                     {e.file ? (
-                                                        <a href={getFileUrl(e.file)} target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb', textDecoration: 'none' }}>
+                                                        <a href={getSecureDownloadUrl(e.id)} target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb', textDecoration: 'none' }}>
                                                             {e.file.split('/').pop()}
                                                         </a>
                                                     ) : e.url ? (
@@ -330,22 +336,24 @@ export default function IndicatorDetail() {
                                                         <span>Note</span>
                                                     )}
                                                 </div>
-                                                <div style={{ display: 'flex', gap: 4 }}>
-                                                    <button
-                                                        onClick={() => handleEditEvidence(e)}
-                                                        style={{ border: 'none', background: 'none', color: '#9ca3af', cursor: 'pointer', fontSize: '0.85rem' }}
-                                                        title="Edit note"
-                                                    >
-                                                        Edit
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDeleteEvidence(e.id)}
-                                                        style={{ border: 'none', background: 'none', color: '#9ca3af', cursor: 'pointer', fontSize: '1.2rem', padding: '0 4px', lineHeight: 1 }}
-                                                        title="Delete evidence"
-                                                    >
-                                                        &times;
-                                                    </button>
-                                                </div>
+                                                {canMutate && (
+                                                    <div style={{ display: 'flex', gap: 4 }}>
+                                                        <button
+                                                            onClick={() => handleEditEvidence(e)}
+                                                            style={{ border: 'none', background: 'none', color: '#9ca3af', cursor: 'pointer', fontSize: '0.85rem' }}
+                                                            title="Edit note"
+                                                        >
+                                                            Edit
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDeleteEvidence(e.id)}
+                                                            style={{ border: 'none', background: 'none', color: '#9ca3af', cursor: 'pointer', fontSize: '1.2rem', padding: '0 4px', lineHeight: 1 }}
+                                                            title="Delete evidence"
+                                                        >
+                                                            &times;
+                                                        </button>
+                                                    </div>
+                                                )}
                                             </div>
                                             <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: 4 }}>
                                                 Uploaded {new Date(e.created_at).toLocaleDateString()}
