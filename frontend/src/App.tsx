@@ -12,7 +12,7 @@ import AuditDashboard from './pages/AuditDashboard';
 import AuditLogs from './pages/AuditLogs';
 import AuditSnapshot from './pages/AuditSnapshot';
 import ImportIndicators from './pages/ImportIndicators';
-import AuditLogs from './pages/AuditLogs';
+import IndicatorForm from './pages/IndicatorForm';
 
 import { ToastProvider } from './components/Toast';
 
@@ -32,6 +32,8 @@ export default function App() {
                 <Route path="/compliance/:id/edit" element={<ComplianceForm />} />
                 <Route path="/evidence/upload" element={<EvidenceUpload />} />
                 <Route path="/indicators/import" element={<ImportIndicators />} />
+                <Route path="/indicators/new" element={<IndicatorForm />} />
+                <Route path="/indicators/:id/edit" element={<IndicatorForm />} />
                 <Route path="/audit" element={<AuditDashboard />} />
                 <Route path="/audit/logs" element={<AuditLogs />} />
                 <Route path="/audit/snapshot" element={<AuditSnapshot />} />

@@ -5,7 +5,7 @@ import { useToast } from '../components/Toast';
 export default function AuditSnapshot() {
     const [snapshot, setSnapshot] = useState<any>(null);
     const [loading, setLoading] = useState(true);
-    const { addToast } = useToast();
+    const { showToast: addToast } = useToast();
 
     useEffect(() => {
         loadSnapshot();
@@ -103,8 +103,8 @@ export default function AuditSnapshot() {
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
                                     <span className={`px-2 py-1 rounded text-xs font-semibold ${ind.status === 'COMPLIANT' ? 'bg-green-100 text-green-800' :
-                                            ind.status === 'OVERDUE' ? 'bg-red-100 text-red-800' :
-                                                'bg-yellow-100 text-yellow-800'
+                                        ind.status === 'OVERDUE' ? 'bg-red-100 text-red-800' :
+                                            'bg-yellow-100 text-yellow-800'
                                         }`}>
                                         {ind.status}
                                     </span>

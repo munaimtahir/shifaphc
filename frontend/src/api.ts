@@ -142,6 +142,20 @@ export async function fetchIndicator(id: string): Promise<Indicator> {
   return request(`/api/indicators/${id}/`);
 }
 
+export async function createIndicator(data: any): Promise<Indicator> {
+  return request("/api/indicators/", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateIndicator(id: string, data: any): Promise<Indicator> {
+  return request(`/api/indicators/${id}/`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
 export async function login(username: string, password: string) {
   return request("/api/auth/login/", {
     method: "POST",
@@ -202,14 +216,6 @@ export async function fetchAuditSummary(start?: string) {
   const params = new URLSearchParams();
   if (start) params.set("start", start);
   return request(`/api/audit/summary/?${params.toString()}`);
-}
-
-export async function fetchAuditLogs(filters: Record<string, string | undefined>): Promise<PaginatedResponse<AuditLogEntry>> {
-  const params = new URLSearchParams();
-  Object.entries(filters).forEach(([key, value]) => {
-    if (value) params.set(key, value);
-  });
-  return request(`/api/audit/logs/?${params.toString()}`);
 }
 
 export function getAuditLogsExportUrl(filters: Record<string, string | undefined>) {

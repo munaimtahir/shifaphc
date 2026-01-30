@@ -12,7 +12,7 @@ export default function AuditLogs() {
         page: 1
     });
     const [pagination, setPagination] = useState({ count: 0, num_pages: 1 });
-    const { addToast } = useToast();
+    const { showToast: addToast } = useToast();
 
     useEffect(() => {
         loadLogs();
@@ -117,9 +117,9 @@ export default function AuditLogs() {
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm">
                                     <span className={`px-2 py-1 rounded text-xs font-semibold ${log.action === 'CREATE' ? 'bg-green-100 text-green-800' :
-                                            log.action === 'DELETE' ? 'bg-red-100 text-red-800' :
-                                                log.action === 'REVOKE' ? 'bg-orange-100 text-orange-800' :
-                                                    'bg-blue-100 text-blue-800'
+                                        log.action === 'DELETE' ? 'bg-red-100 text-red-800' :
+                                            log.action === 'REVOKE' ? 'bg-orange-100 text-orange-800' :
+                                                'bg-blue-100 text-blue-800'
                                         }`}>
                                         {log.action}
                                     </span>

@@ -3,7 +3,7 @@ import { Link, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth';
 
 export default function Layout() {
-    const { user, logout, isAdmin, isReviewer } = useAuth();
+    const { user, logout, isAdmin, isReviewer, canMutate } = useAuth();
     const navigate = useNavigate();
 
     async function handleLogout() {
@@ -18,7 +18,8 @@ export default function Layout() {
                 <Link to="/" style={{ textDecoration: 'none', color: '#0066cc' }}>Dashboard</Link>
                 {user && <Link to="/audit" style={{ textDecoration: 'none', color: '#0066cc' }}>Audit</Link>}
                 {user && <Link to="/audit/logs" style={{ textDecoration: 'none', color: '#0066cc' }}>Logs</Link>}
-                {user && isAdmin && <Link to="/indicators/import" style={{ textDecoration: 'none', color: '#0066cc' }}>Import</Link>}
+                {user && canMutate && <Link to="/indicators/new" style={{ textDecoration: 'none', color: '#0066cc' }}>+ project</Link>}
+                {user && canMutate && <Link to="/indicators/import" style={{ textDecoration: 'none', color: '#0066cc' }}>+ compliance list</Link>}
                 {user ? (
                     <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>

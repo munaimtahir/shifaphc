@@ -1,8 +1,10 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { fetchIndicators, Indicator } from "../api";
+import { useAuth } from "../auth";
 
 export default function Dashboard() {
+    const { canMutate } = useAuth();
     const [items, setItems] = useState<Indicator[]>([]);
     const [q, setQ] = useState("");
     const [statusFilter, setStatusFilter] = useState("");
@@ -45,50 +47,68 @@ export default function Dashboard() {
     return (
         <div style={{ paddingBottom: 40 }}>
             <div style={{
-                background: 'white', padding: 20, borderRadius: 12, border: '1px solid #eee',
-                marginBottom: 24, boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
+                marginBottom: 24, boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center'
             }}>
-                <form onSubmit={onSearch} style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
-                    <div style={{ flex: 2, minWidth: 200 }}>
-                        <input
-                            style={{
-                                width: "100%", padding: "10px 14px", fontSize: 16,
-                                border: "1px solid #e5e7eb", borderRadius: 8, outline: 'none'
-                            }}
-                            value={q}
-                            onChange={(e) => setQ(e.target.value)}
-                            placeholder="Search by text, section, or standard..."
-                        />
-                    </div>
+                <div style={{ flex: 1 }}>
+                    <form onSubmit={onSearch} style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
+                        <div style={{ flex: 2, minWidth: 200 }}>
+                            <input
+                                style={{
+                                    width: "100%", padding: "10px 14px", fontSize: 16,
+                                    border: "1px solid #e5e7eb", borderRadius: 8, outline: 'none'
+                                }}
+                                value={q}
+                                onChange={(e) => setQ(e.target.value)}
+                                placeholder="Search by text, section, or standard..."
+                            />
+                        </div>
 
-                    <div style={{ flex: 1, minWidth: 150 }}>
-                        <select
+                        <div style={{ flex: 1, minWidth: 150 }}>
+                            <select
+                                style={{
+                                    width: "100%", padding: "10px 14px", fontSize: 16,
+                                    border: "1px solid #e5e7eb", borderRadius: 8, outline: 'none',
+                                    background: 'white'
+                                }}
+                                value={statusFilter}
+                                onChange={(e) => setStatusFilter(e.target.value)}
+                            >
+                                <option value="">All Statuses</option>
+                                <option value="COMPLIANT">Compliant</option>
+                                <option value="DUE_SOON">Due Soon</option>
+                                <option value="OVERDUE">Overdue</option>
+                                <option value="NOT_STARTED">Not Started</option>
+                            </select>
+                        </div>
+
+                        <button
+                            type="submit"
                             style={{
-                                width: "100%", padding: "10px 14px", fontSize: 16,
-                                border: "1px solid #e5e7eb", borderRadius: 8, outline: 'none',
-                                background: 'white'
+                                padding: "10px 24px", backgroundColor: "#2563eb", color: "#fff",
+                                border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 'bold'
                             }}
-                            value={statusFilter}
-                            onChange={(e) => setStatusFilter(e.target.value)}
                         >
-                            <option value="">All Statuses</option>
-                            <option value="COMPLIANT">Compliant</option>
-                            <option value="DUE_SOON">Due Soon</option>
-                            <option value="OVERDUE">Overdue</option>
-                            <option value="NOT_STARTED">Not Started</option>
-                        </select>
-                    </div>
+                        </button>
+                    </form>
+                </div>
 
-                    <button
-                        type="submit"
-                        style={{
-                            padding: "10px 24px", backgroundColor: "#2563eb", color: "#fff",
-                            border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 'bold'
-                        }}
-                    >
-                        Search
-                    </button>
-                </form>
+                {canMutate && (
+                    <div style={{ display: 'flex', gap: 12, marginLeft: 12 }}>
+                        <Link to="/indicators/new" style={{
+                            padding: "10px 20px", backgroundColor: "#059669", color: "#fff",
+                            textDecoration: "none", borderRadius: 8, fontWeight: 'bold', fontSize: '14px'
+                        }}>
+                            + Add Project
+                        </Link>
+                        <Link to="/indicators/import" style={{
+                            padding: "10px 20px", backgroundColor: "#4f46e5", color: "#fff",
+                            textDecoration: "none", borderRadius: 8, fontWeight: 'bold', fontSize: '14px'
+                        }}>
+                            + Compliance List
+                        </Link>
+                    </div>
+                )}
             </div>
 
             {loading ? (
@@ -127,14 +147,19 @@ export default function Dashboard() {
                                             {it.frequency}
                                         </td>
                                         <td style={{ padding: "16px 20px", width: 140 }}>
-                                            <span style={{
-                                                display: 'inline-block', padding: "4px 10px", borderRadius: 9999, fontSize: '0.75rem', fontWeight: 600,
-                                                backgroundColor: it.due_status === 'COMPLIANT' ? '#ecfdf5' : it.due_status === 'OVERDUE' ? '#fef2f2' : '#fffbeb',
-                                                color: it.due_status === 'COMPLIANT' ? '#064e3b' : it.due_status === 'OVERDUE' ? '#991b1b' : '#92400e',
-                                                border: `1px solid ${it.due_status === 'COMPLIANT' ? '#d1fae5' : it.due_status === 'OVERDUE' ? '#fee2e2' : '#fef3c7'}`
-                                            }}>
-                                                {it.due_status}
-                                            </span>
+                                            <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                                                <span style={{
+                                                    display: 'inline-block', padding: "4px 10px", borderRadius: 9999, fontSize: '0.75rem', fontWeight: 600,
+                                                    backgroundColor: it.due_status === 'COMPLIANT' ? '#ecfdf5' : it.due_status === 'OVERDUE' ? '#fef2f2' : '#fffbeb',
+                                                    color: it.due_status === 'COMPLIANT' ? '#064e3b' : it.due_status === 'OVERDUE' ? '#991b1b' : '#92400e',
+                                                    border: `1px solid ${it.due_status === 'COMPLIANT' ? '#d1fae5' : it.due_status === 'OVERDUE' ? '#fee2e2' : '#fef3c7'}`
+                                                }}>
+                                                    {it.due_status}
+                                                </span>
+                                                {canMutate && (
+                                                    <Link to={`/indicators/${it.id}/edit`} style={{ fontSize: '0.75rem', color: '#666', textDecoration: 'none' }}>Edit</Link>
+                                                )}
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}

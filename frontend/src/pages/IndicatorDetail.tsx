@@ -155,6 +155,12 @@ export default function IndicatorDetail() {
                     </div>
                     {canMutate && (
                         <>
+                            <Link to={`/indicators/${indicator.id}/edit`} style={{
+                                padding: "8px 16px", backgroundColor: "#f59e0b", color: "#fff",
+                                textDecoration: "none", borderRadius: 6, fontSize: '0.9rem', fontWeight: 500
+                            }}>
+                                Edit Project
+                            </Link>
                             <Link to={`/compliance/new?indicator=${indicator.id}`} style={{
                                 padding: "8px 16px", backgroundColor: "#059669", color: "#fff",
                                 textDecoration: "none", borderRadius: 6, fontSize: '0.9rem', fontWeight: 500
