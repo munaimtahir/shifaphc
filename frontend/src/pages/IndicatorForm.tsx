@@ -23,7 +23,17 @@ export default function IndicatorForm() {
         if (id) {
             setLoading(true);
             fetchIndicator(id)
-                .then(setFormData)
+                .then(indicator => {
+                    setFormData({
+                        section: indicator.section,
+                        standard: indicator.standard,
+                        indicator_text: indicator.indicator_text,
+                        evidence_required_text: indicator.evidence_required_text || "",
+                        responsible_person: indicator.responsible_person || "",
+                        frequency: indicator.frequency,
+                        is_active: indicator.is_active
+                    });
+                })
                 .catch(err => showToast(err.message, "error"))
                 .finally(() => setLoading(false));
         }
