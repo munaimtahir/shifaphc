@@ -99,7 +99,7 @@ export default function Dashboard() {
                             padding: "10px 20px", backgroundColor: "#059669", color: "#fff",
                             textDecoration: "none", borderRadius: 8, fontWeight: 'bold', fontSize: '14px'
                         }}>
-                            + Add Project
+                            + Add Indicator
                         </Link>
                         <Link to="/indicators/import" style={{
                             padding: "10px 20px", backgroundColor: "#4f46e5", color: "#fff",

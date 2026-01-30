@@ -13,6 +13,9 @@ import AuditLogs from './pages/AuditLogs';
 import AuditSnapshot from './pages/AuditSnapshot';
 import ImportIndicators from './pages/ImportIndicators';
 import IndicatorForm from './pages/IndicatorForm';
+import ProjectsListPage from './pages/ProjectsListPage';
+import CreateProjectPage from './pages/CreateProjectPage';
+import ProjectDetailPage from './pages/ProjectDetailPage';
 
 import { ToastProvider } from './components/Toast';
 
@@ -28,6 +31,9 @@ export default function App() {
               <Route path="/indicators/:id" element={<IndicatorDetail />} />
 
               <Route element={<ProtectedRoute />}>
+                <Route path="/projects" element={<ProjectsListPage />} />
+                <Route path="/projects/new" element={<CreateProjectPage />} />
+                <Route path="/projects/:id" element={<ProjectDetailPage />} />
                 <Route path="/compliance/new" element={<ComplianceForm />} />
                 <Route path="/compliance/:id/edit" element={<ComplianceForm />} />
                 <Route path="/evidence/upload" element={<EvidenceUpload />} />

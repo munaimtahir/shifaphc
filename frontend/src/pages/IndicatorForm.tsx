@@ -1,15 +1,18 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { fetchIndicator, createIndicator, updateIndicator } from "../api";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { fetchIndicator, createIndicator, updateIndicator, fetchProjects, Project } from "../api";
 import { useToast } from "../components/Toast";
 
 export default function IndicatorForm() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const { showToast } = useToast();
 
     const [loading, setLoading] = useState(false);
+    const [projects, setProjects] = useState<Project[]>([]);
     const [formData, setFormData] = useState({
+        project: searchParams.get("project") || "",
         section: "",
         standard: "",
         indicator_text: "",
@@ -20,11 +23,18 @@ export default function IndicatorForm() {
     });
 
     useEffect(() => {
+        fetchProjects()
+            .then(setProjects)
+            .catch(err => console.error(err));
+    }, []);
+
+    useEffect(() => {
         if (id) {
             setLoading(true);
             fetchIndicator(id)
                 .then(indicator => {
                     setFormData({
+                        project: indicator.project || "",
                         section: indicator.section,
                         standard: indicator.standard,
                         indicator_text: indicator.indicator_text,
@@ -43,11 +53,12 @@ export default function IndicatorForm() {
         e.preventDefault();
         setLoading(true);
         try {
+            const payload = { ...formData, project: formData.project || null };
             if (id) {
-                await updateIndicator(id, formData);
+                await updateIndicator(id, payload);
                 showToast("Indicator updated", "success");
             } else {
-                await createIndicator(formData);
+                await createIndicator(payload);
                 showToast("Indicator created", "success");
             }
             navigate("/");
@@ -60,8 +71,23 @@ export default function IndicatorForm() {
 
     return (
         <div style={{ maxWidth: 600 }}>
-            <h1>{id ? "Edit Project" : "Add New Project"}</h1>
+            <h1>{id ? "Edit Indicator" : "Add New Indicator"}</h1>
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <div>
+                    <label style={{ display: 'block', marginBottom: 4 }}>Project</label>
+                    <select
+                        style={{ width: '100%', padding: 8, borderRadius: 4, border: '1px solid #ccc' }}
+                        value={formData.project}
+                        onChange={e => setFormData({ ...formData, project: e.target.value })}
+                    >
+                        <option value="">Unassigned</option>
+                        {projects.map(project => (
+                            <option key={project.id} value={project.id}>
+                                {project.name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
                 <div>
                     <label style={{ display: 'block', marginBottom: 4 }}>Section</label>
                     <input
@@ -128,7 +154,7 @@ export default function IndicatorForm() {
                         disabled={loading}
                         style={{ padding: '10px 20px', backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer' }}
                     >
-                        {loading ? "Saving..." : "Save Project"}
+                        {loading ? "Saving..." : "Save Indicator"}
                     </button>
                     <button
                         type="button"

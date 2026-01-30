@@ -1,6 +1,6 @@
 from rest_framework.routers import DefaultRouter
 from django.urls import path, include
-from .views import IndicatorViewSet, ComplianceRecordViewSet, EvidenceItemViewSet, AuditViewSet, UserViewSet, health_check, login_view, logout_view, user_info
+from .views import IndicatorViewSet, ComplianceRecordViewSet, EvidenceItemViewSet, AuditViewSet, UserViewSet, ProjectViewSet, health_check, login_view, logout_view, user_info
 
 router = DefaultRouter()
 router.register(r"indicators", IndicatorViewSet, basename="indicator")
@@ -8,6 +8,7 @@ router.register(r"compliance", ComplianceRecordViewSet, basename="compliance")
 router.register(r"evidence", EvidenceItemViewSet, basename="evidence")
 router.register(r"users", UserViewSet, basename="user")
 router.register(r"audit", AuditViewSet, basename="audit")
+router.register(r"projects", ProjectViewSet, basename="project")
 
 urlpatterns = [
   path("", include(router.urls)),
