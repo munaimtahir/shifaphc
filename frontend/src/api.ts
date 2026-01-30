@@ -59,6 +59,7 @@ export async function request(path: string, options: RequestInit = {}) {
 
 export type Indicator = {
   id: string;
+  project: string | null;
   section: string;
   standard: string;
   indicator_text: string;
@@ -71,6 +72,16 @@ export type Indicator = {
   last_compliant_on: string | null;
   next_due_on: string | null;
   due_status: "COMPLIANT" | "DUE_SOON" | "OVERDUE" | "NOT_STARTED";
+};
+
+export type Project = {
+  id: string;
+  name: string;
+  description?: string | null;
+  status: "active" | "archived";
+  created_by?: string | null;
+  created_at: string;
+  updated_at: string;
 };
 
 export type ComplianceRecord = {
@@ -131,10 +142,11 @@ export type PaginatedResponse<T> = {
 
 // -- API Calls --
 
-export async function fetchIndicators(q?: string, status?: string): Promise<Indicator[]> {
+export async function fetchIndicators(q?: string, status?: string, projectId?: string): Promise<Indicator[]> {
   const params = new URLSearchParams();
   if (q) params.set("q", q);
   if (status) params.set("due_status", status);
+  if (projectId) params.set("project", projectId);
   return request(`/api/indicators/?${params.toString()}`);
 }
 
@@ -153,6 +165,35 @@ export async function updateIndicator(id: string, data: any): Promise<Indicator>
   return request(`/api/indicators/${id}/`, {
     method: "PATCH",
     body: JSON.stringify(data),
+  });
+}
+
+// Projects
+export async function fetchProjects(): Promise<Project[]> {
+  return request("/api/projects/");
+}
+
+export async function fetchProject(id: string): Promise<Project> {
+  return request(`/api/projects/${id}/`);
+}
+
+export async function createProject(data: any): Promise<Project> {
+  return request("/api/projects/", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateProject(id: string, data: Partial<Project>): Promise<Project> {
+  return request(`/api/projects/${id}/`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteProject(id: string) {
+  return request(`/api/projects/${id}/`, {
+    method: "DELETE",
   });
 }
 

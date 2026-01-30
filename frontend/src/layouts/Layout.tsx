@@ -3,7 +3,7 @@ import { Link, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth';
 
 export default function Layout() {
-    const { user, logout, isAdmin, isReviewer, canMutate } = useAuth();
+    const { user, logout, canMutate } = useAuth();
     const navigate = useNavigate();
 
     async function handleLogout() {
@@ -15,10 +15,11 @@ export default function Layout() {
         <div style={{ fontFamily: "system-ui", maxWidth: 1100, margin: "0 auto", padding: 16 }}>
             <nav style={{ display: "flex", gap: 16, padding: "12px 0", borderBottom: "1px solid #eee", marginBottom: 24, alignItems: 'center' }}>
                 <Link to="/" style={{ fontSize: 20, fontWeight: "bold", textDecoration: "none", color: "#333", marginRight: "auto" }}>AccredOS</Link>
-                <Link to="/" style={{ textDecoration: 'none', color: '#0066cc' }}>Dashboard</Link>
+                <Link to="/" style={{ textDecoration: 'none', color: '#0066cc' }}>Indicators</Link>
+                {user && <Link to="/projects" style={{ textDecoration: 'none', color: '#0066cc' }}>Projects</Link>}
                 {user && <Link to="/audit" style={{ textDecoration: 'none', color: '#0066cc' }}>Audit</Link>}
                 {user && <Link to="/audit/logs" style={{ textDecoration: 'none', color: '#0066cc' }}>Logs</Link>}
-                {user && canMutate && <Link to="/indicators/new" style={{ textDecoration: 'none', color: '#0066cc' }}>+ project</Link>}
+                {user && canMutate && <Link to="/projects/new" style={{ textDecoration: 'none', color: '#0066cc' }}>+ project</Link>}
                 {user && canMutate && <Link to="/indicators/import" style={{ textDecoration: 'none', color: '#0066cc' }}>+ compliance list</Link>}
                 {user ? (
                     <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>

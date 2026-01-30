@@ -137,6 +137,12 @@ export default function IndicatorDetail() {
             {/* Breadcrumbs */}
             <div style={{ marginBottom: 16, fontSize: '0.9rem', color: '#666' }}>
                 <Link to="/" style={{ color: '#2563eb', textDecoration: 'none' }}>Indicators</Link>
+                {indicator.project && (
+                    <>
+                        <span style={{ margin: '0 8px' }}>/</span>
+                        <Link to={`/projects/${indicator.project}`} style={{ color: '#2563eb', textDecoration: 'none' }}>Project</Link>
+                    </>
+                )}
                 <span style={{ margin: '0 8px' }}>/</span>
                 <span>{indicator.standard}</span>
             </div>
@@ -159,7 +165,7 @@ export default function IndicatorDetail() {
                                 padding: "8px 16px", backgroundColor: "#f59e0b", color: "#fff",
                                 textDecoration: "none", borderRadius: 6, fontSize: '0.9rem', fontWeight: 500
                             }}>
-                                Edit Project
+                                Edit Indicator
                             </Link>
                             <Link to={`/compliance/new?indicator=${indicator.id}`} style={{
                                 padding: "8px 16px", backgroundColor: "#059669", color: "#fff",

@@ -6,13 +6,13 @@ from django.http import HttpResponse
 from django.utils import timezone
 from rest_framework import viewsets, permissions, pagination
 from rest_framework.decorators import action, api_view, permission_classes
-from .permissions import IsAdmin, IsContributorOrAdmin, IsReviewerOrHigher, ReadOnly, IsAdminOrReviewer
+from .permissions import IsAdmin, IsContributorOrAdmin, IsReviewerOrHigher, ReadOnly, IsAdminOrReviewer, ReadOnlyOrAdminContributor
 from rest_framework.response import Response
 
-from .models import Indicator, ComplianceRecord, EvidenceItem, User, AuditLog, AuditAction
+from .models import Indicator, ComplianceRecord, EvidenceItem, User, AuditLog, AuditAction, Project
 from .serializers import (
     IndicatorSerializer, ComplianceRecordSerializer, EvidenceItemSerializer, 
-    UserSerializer, AuditLogSerializer
+    UserSerializer, AuditLogSerializer, ProjectSerializer
 )
 from .services import compute_valid_until, compute_due_status
 from .utils import log_audit
@@ -89,6 +89,7 @@ class IndicatorViewSet(viewsets.ModelViewSet):
     section = self.request.query_params.get("section")
     due = self.request.query_params.get("due_status")
     active = self.request.query_params.get("is_active")
+    project = self.request.query_params.get("project")
 
     if active is not None:
       qs = qs.filter(is_active=active.lower()=="true")
@@ -98,6 +99,8 @@ class IndicatorViewSet(viewsets.ModelViewSet):
       qs = qs.filter(frequency=freq)
     if section:
       qs = qs.filter(section=section)
+    if project:
+      qs = qs.filter(project_id=project)
     if due:
       ids = [ind.id for ind in qs if compute_due_status(ind)[2] == due]
       qs = qs.filter(id__in=ids)
@@ -501,6 +504,52 @@ def logout_view(request):
         )
     logout(request)
     return Response({"detail": "Logged out"})
+
+class ProjectViewSet(viewsets.ModelViewSet):
+  queryset = Project.objects.all().order_by("-updated_at")
+  serializer_class = ProjectSerializer
+  permission_classes = [ReadOnlyOrAdminContributor]
+
+  def perform_create(self, serializer):
+    instance = serializer.save(created_by=self.request.user)
+    log_audit(
+        actor=self.request.user,
+        action=AuditAction.CREATE,
+        entity_type="Project",
+        entity_id=instance.id,
+        summary=f"Created project {instance.name}",
+        after=serializer.data,
+        request=self.request
+    )
+
+  def perform_update(self, serializer):
+    before = ProjectSerializer(serializer.instance).data
+    instance = serializer.save()
+    log_audit(
+        actor=self.request.user,
+        action=AuditAction.UPDATE,
+        entity_type="Project",
+        entity_id=instance.id,
+        summary=f"Updated project {instance.name}",
+        before=before,
+        after=serializer.data,
+        request=self.request
+    )
+
+  def perform_destroy(self, instance):
+    before = ProjectSerializer(instance).data
+    entity_id = instance.id
+    name = instance.name
+    instance.delete()
+    log_audit(
+        actor=self.request.user,
+        action=AuditAction.DELETE,
+        entity_type="Project",
+        entity_id=entity_id,
+        summary=f"Deleted project {name}",
+        before=before,
+        request=self.request
+    )
 
 @api_view(["GET"])
 @permission_classes([permissions.AllowAny])

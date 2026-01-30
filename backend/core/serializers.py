@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Indicator, ComplianceRecord, EvidenceItem, User, AuditLog
+from .models import Indicator, ComplianceRecord, EvidenceItem, User, AuditLog, Project
 from .services import compute_due_status
 from django.contrib.auth.models import Group
 
@@ -34,7 +34,7 @@ class IndicatorSerializer(serializers.ModelSerializer):
   class Meta:
     model = Indicator
     fields = [
-      "id","section","standard","indicator_text","evidence_required_text",
+      "id","project","section","standard","indicator_text","evidence_required_text",
       "responsible_person","frequency","evidence_min_rule_json","ai_prompt_template",
       "is_active","created_at","updated_at",
       "last_compliant_on","next_due_on","due_status"
@@ -58,6 +58,12 @@ class EvidenceItemSerializer(serializers.ModelSerializer):
     model = EvidenceItem
     fields = ["id","indicator","compliance_record","type","note_text","url","file","created_by","created_at"]
     read_only_fields = ["created_by","created_at"]
+
+class ProjectSerializer(serializers.ModelSerializer):
+  class Meta:
+    model = Project
+    fields = ["id","name","description","status","created_by","created_at","updated_at"]
+    read_only_fields = ["created_by","created_at","updated_at"]
 
 class AuditLogSerializer(serializers.ModelSerializer):
   actor_username = serializers.SerializerMethodField()

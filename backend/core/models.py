@@ -46,6 +46,7 @@ class AuditAction(models.TextChoices):
 
 class Indicator(models.Model):
   id=models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+  project=models.ForeignKey("Project", on_delete=models.CASCADE, related_name="indicators", null=True, blank=True)
   section=models.TextField()
   standard=models.TextField()
   indicator_text=models.TextField()
@@ -57,6 +58,22 @@ class Indicator(models.Model):
   is_active=models.BooleanField(default=True)
   created_at=models.DateTimeField(auto_now_add=True)
   updated_at=models.DateTimeField(auto_now=True)
+
+class ProjectStatus(models.TextChoices):
+  ACTIVE="active","Active"
+  ARCHIVED="archived","Archived"
+
+class Project(models.Model):
+  id=models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+  name=models.CharField(max_length=255)
+  description=models.TextField(blank=True, null=True)
+  status=models.CharField(max_length=16, choices=ProjectStatus.choices, default=ProjectStatus.ACTIVE)
+  created_by=models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="created_projects")
+  created_at=models.DateTimeField(auto_now_add=True)
+  updated_at=models.DateTimeField(auto_now=True)
+
+  def __str__(self):
+    return self.name
 
 class ComplianceRecord(models.Model):
   id=models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
