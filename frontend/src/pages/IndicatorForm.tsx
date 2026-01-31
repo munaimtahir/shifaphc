@@ -61,7 +61,11 @@ export default function IndicatorForm() {
                 await createIndicator(payload);
                 showToast("Indicator created", "success");
             }
-            navigate("/");
+            if (payload.project) {
+                navigate(`/projects/${payload.project}`);
+            } else {
+                navigate("/projects");
+            }
         } catch (err: any) {
             showToast(err.message, "error");
         } finally {

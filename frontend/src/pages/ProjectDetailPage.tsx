@@ -82,22 +82,38 @@ export default function ProjectDetailPage() {
 
             <div style={{ display: "flex", alignItems: "center", marginBottom: 16 }}>
                 <h2 style={{ margin: 0, marginRight: "auto" }}>Indicators</h2>
-                {canMutate && (
+                <div style={{ display: "flex", gap: 12 }}>
                     <Link
-                        to={`/indicators/new?project=${project.id}`}
+                        to={canMutate ? `/projects/${project.id}/import` : "#"}
                         style={{
                             padding: "8px 16px",
-                            backgroundColor: "#2563eb",
-                            color: "#fff",
+                            backgroundColor: canMutate ? "#4f46e5" : "#e5e7eb",
+                            color: canMutate ? "#fff" : "#9ca3af",
                             textDecoration: "none",
                             borderRadius: 6,
                             fontSize: "0.9rem",
                             fontWeight: 500,
+                            pointerEvents: canMutate ? "auto" : "none",
                         }}
                     >
-                        + Add Indicator
+                        Import Indicators (CSV)
                     </Link>
-                )}
+                    <Link
+                        to={canMutate ? `/indicators/new?project=${project.id}` : "#"}
+                        style={{
+                            padding: "8px 16px",
+                            backgroundColor: canMutate ? "#2563eb" : "#e5e7eb",
+                            color: canMutate ? "#fff" : "#9ca3af",
+                            textDecoration: "none",
+                            borderRadius: 6,
+                            fontSize: "0.9rem",
+                            fontWeight: 500,
+                            pointerEvents: canMutate ? "auto" : "none",
+                        }}
+                    >
+                        Add Indicator Manually
+                    </Link>
+                </div>
             </div>
 
             {loadingIndicators ? (
@@ -110,6 +126,7 @@ export default function ProjectDetailPage() {
                                 <th style={{ padding: "14px 16px", color: "#4b5563", fontWeight: 600, fontSize: "0.8rem", textTransform: "uppercase" }}>Section</th>
                                 <th style={{ padding: "14px 16px", color: "#4b5563", fontWeight: 600, fontSize: "0.8rem", textTransform: "uppercase" }}>Indicator</th>
                                 <th style={{ padding: "14px 16px", color: "#4b5563", fontWeight: 600, fontSize: "0.8rem", textTransform: "uppercase" }}>Status</th>
+                                <th style={{ padding: "14px 16px", color: "#4b5563", fontWeight: 600, fontSize: "0.8rem", textTransform: "uppercase" }}>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -140,11 +157,28 @@ export default function ProjectDetailPage() {
                                             {indicator.due_status}
                                         </span>
                                     </td>
+                                    <td style={{ padding: "14px 16px", fontSize: "0.85rem" }}>
+                                        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                                            <Link to={`/indicators/${indicator.id}`} style={{ color: "#2563eb", textDecoration: "none" }}>
+                                                View
+                                            </Link>
+                                            {canMutate && (
+                                                <>
+                                                    <Link to={`/indicators/${indicator.id}/edit`} style={{ color: "#2563eb", textDecoration: "none" }}>
+                                                        Edit
+                                                    </Link>
+                                                    <Link to={`/evidence/upload?indicator=${indicator.id}`} style={{ color: "#2563eb", textDecoration: "none" }}>
+                                                        Attach Evidence
+                                                    </Link>
+                                                </>
+                                            )}
+                                        </div>
+                                    </td>
                                 </tr>
                             ))}
                             {indicators.length === 0 && (
                                 <tr>
-                                    <td colSpan={3} style={{ padding: 32, textAlign: "center", color: "#9ca3af" }}>
+                                    <td colSpan={4} style={{ padding: 32, textAlign: "center", color: "#9ca3af" }}>
                                         No indicators assigned to this project yet.
                                     </td>
                                 </tr>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './auth';
 import Layout from './layouts/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -26,18 +26,18 @@ export default function App() {
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<Login />} />
-            <Route element={<Layout />}>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/indicators/:id" element={<IndicatorDetail />} />
-
-              <Route element={<ProtectedRoute />}>
+            <Route element={<ProtectedRoute />}>
+              <Route element={<Layout />}>
+                <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/indicators/:id" element={<IndicatorDetail />} />
                 <Route path="/projects" element={<ProjectsListPage />} />
                 <Route path="/projects/new" element={<CreateProjectPage />} />
                 <Route path="/projects/:id" element={<ProjectDetailPage />} />
+                <Route path="/projects/:id/import" element={<ImportIndicators />} />
                 <Route path="/compliance/new" element={<ComplianceForm />} />
                 <Route path="/compliance/:id/edit" element={<ComplianceForm />} />
                 <Route path="/evidence/upload" element={<EvidenceUpload />} />
-                <Route path="/indicators/import" element={<ImportIndicators />} />
                 <Route path="/indicators/new" element={<IndicatorForm />} />
                 <Route path="/indicators/:id/edit" element={<IndicatorForm />} />
                 <Route path="/audit" element={<AuditDashboard />} />

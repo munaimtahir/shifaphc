@@ -136,7 +136,7 @@ export default function IndicatorDetail() {
         <div style={{ paddingBottom: 60 }}>
             {/* Breadcrumbs */}
             <div style={{ marginBottom: 16, fontSize: '0.9rem', color: '#666' }}>
-                <Link to="/" style={{ color: '#2563eb', textDecoration: 'none' }}>Indicators</Link>
+                <Link to="/dashboard" style={{ color: '#2563eb', textDecoration: 'none' }}>Dashboard</Link>
                 {indicator.project && (
                     <>
                         <span style={{ margin: '0 8px' }}>/</span>
