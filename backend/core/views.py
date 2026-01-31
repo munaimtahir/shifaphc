@@ -9,7 +9,7 @@ from rest_framework.decorators import action, api_view, permission_classes
 from .permissions import IsAdmin, IsContributorOrAdmin, IsReviewerOrHigher, ReadOnly, IsAdminOrReviewer, ReadOnlyOrAdminContributor
 from rest_framework.response import Response
 
-from .models import Indicator, ComplianceRecord, EvidenceItem, User, AuditLog, AuditAction, Project
+from .models import Indicator, ComplianceRecord, EvidenceItem, User, AuditLog, AuditAction, Project, Frequency
 from .serializers import (
     IndicatorSerializer, ComplianceRecordSerializer, EvidenceItemSerializer, 
     UserSerializer, AuditLogSerializer, ProjectSerializer
@@ -77,9 +77,7 @@ class IndicatorViewSet(viewsets.ModelViewSet):
 
   def get_permissions(self):
     if self.action in ["list", "retrieve"]:
-      return [permissions.AllowAny()]
-    if self.action == "import_csv":
-      return [IsAdmin()]
+      return [ReadOnlyOrAdminContributor()]
     return [IsContributorOrAdmin()]
 
   def get_queryset(self):
@@ -106,75 +104,6 @@ class IndicatorViewSet(viewsets.ModelViewSet):
       qs = qs.filter(id__in=ids)
     return qs
 
-  @action(detail=False, methods=["post"], url_path="import")
-  def import_csv(self, request):
-    if "file" not in request.FILES:
-      return Response({"detail":"file is required"}, status=400)
-    
-    try:
-      f = TextIOWrapper(request.FILES["file"].file, encoding="utf-8")
-      reader = csv.DictReader(f)
-      created = 0
-      errors = []
-      total = 0
-      
-      for i, row in enumerate(reader):
-        total += 1
-        sec = (row.get("Section") or "").strip()
-        std = (row.get("Standard") or "").strip()
-        ind = (row.get("Indicator") or "").strip()
-        
-        if not sec or not std or not ind:
-          errors.append(f"Row {i+1}: Missing required fields (Section, Standard, or Indicator)")
-          continue
-          
-        Indicator.objects.create(
-          section=sec,
-          standard=std,
-          indicator_text=ind,
-          evidence_required_text=(row.get("Evidence Required") or "").strip() or None,
-          responsible_person=(row.get("Responsible Person") or "").strip() or None,
-        )
-        created += 1
-      metadata = {
-        "rows_total": total,
-        "created": created,
-        "updated": 0,
-        "skipped": len(errors),
-        "errors_count": len(errors),
-        "error_samples": errors[:5],
-      }
-      log_audit(
-        actor=request.user,
-        action=AuditAction.IMPORT,
-        entity_type="Indicator",
-        entity_id="import",
-        summary=f"Imported indicators from CSV (created={created}, errors={len(errors)})",
-        metadata=metadata,
-        request=request,
-      )
-      if errors:
-        log_audit(
-            actor=request.user,
-            action="IMPORT",
-            entity_type="Indicator",
-            summary=f"Bulk import finished with {created} successes and {len(errors)} errors",
-            metadata={"errors": errors, "created_count": created},
-            request=request
-        )
-        return Response({"created": created, "errors": errors}, status=207 if created > 0 else 400)
-      
-      log_audit(
-          actor=request.user,
-          action="IMPORT",
-          entity_type="Indicator",
-          summary=f"Bulk import finished successfully: {created} indicators created",
-          metadata={"created_count": created},
-          request=request
-      )
-      return Response({"created": created})
-    except Exception as e:
-      return Response({"detail": f"CSV Parse Error: {str(e)}"}, status=400)
 
 class ComplianceRecordViewSet(viewsets.ModelViewSet):
   queryset = ComplianceRecord.objects.select_related("indicator").all().order_by("-compliant_on","-created_at")
@@ -476,6 +405,14 @@ class AuditViewSet(viewsets.ViewSet):
 def health_check(request):
   return Response({"status": "ok"})
 
+@api_view(["GET"])
+def dashboard_stats(request):
+  return Response({
+    "projects": Project.objects.count(),
+    "indicators": Indicator.objects.count(),
+    "compliance_records": ComplianceRecord.objects.count(),
+  })
+
 from django.contrib.auth import authenticate, login, logout
 
 @api_view(["POST"])
@@ -509,6 +446,102 @@ class ProjectViewSet(viewsets.ModelViewSet):
   queryset = Project.objects.all().order_by("-updated_at")
   serializer_class = ProjectSerializer
   permission_classes = [ReadOnlyOrAdminContributor]
+
+  @action(detail=True, methods=["post"], url_path="import-indicators", permission_classes=[IsContributorOrAdmin])
+  def import_indicators(self, request, pk=None):
+    project = self.get_object()
+    upload = request.FILES.get("file")
+    if not upload:
+      return Response({"detail": "file is required"}, status=400)
+
+    required_fields = ["indicator_code", "section", "text", "frequency", "mandatory"]
+    created = 0
+    errors = []
+    total = 0
+
+    def normalize_frequency(value: str):
+      if not value:
+        return None
+      normalized = value.strip().upper().replace(" ", "_")
+      for choice, _label in Frequency.choices:
+        if normalized == choice:
+          return choice
+      return None
+
+    def parse_mandatory(value: str):
+      if value is None:
+        return None
+      normalized = value.strip().lower()
+      if normalized in ["yes", "true", "1", "y"]:
+        return True
+      if normalized in ["no", "false", "0", "n"]:
+        return False
+      return None
+
+    try:
+      f = TextIOWrapper(upload.file, encoding="utf-8-sig")
+      reader = csv.DictReader(f)
+      if not reader.fieldnames:
+        return Response({"detail": "CSV headers are required"}, status=400)
+
+      header_map = {name.strip().lower(): name for name in reader.fieldnames}
+      missing = [field for field in required_fields if field not in header_map]
+      if missing:
+        return Response({"detail": f"Missing required columns: {', '.join(missing)}"}, status=400)
+
+      for row_index, row in enumerate(reader, start=2):
+        total += 1
+        normalized = {key.strip().lower(): (value or "").strip() for key, value in row.items()}
+        indicator_code = normalized.get("indicator_code")
+        section = normalized.get("section")
+        text = normalized.get("text")
+        frequency = normalize_frequency(normalized.get("frequency"))
+        mandatory_raw = normalized.get("mandatory")
+        mandatory = parse_mandatory(mandatory_raw)
+
+        row_errors = []
+        if not indicator_code:
+          row_errors.append("indicator_code is required")
+        if not section:
+          row_errors.append("section is required")
+        if not text:
+          row_errors.append("text is required")
+        if not frequency:
+          row_errors.append("frequency must be one of: " + ", ".join([choice for choice, _label in Frequency.choices]))
+        if mandatory is None:
+          row_errors.append("mandatory must be yes/no")
+
+        if row_errors:
+          errors.append({"row": row_index, "errors": row_errors})
+          continue
+
+        Indicator.objects.create(
+          project=project,
+          section=section,
+          standard=indicator_code,
+          indicator_text=text,
+          frequency=frequency,
+          evidence_min_rule_json={"mandatory": mandatory},
+          is_active=True,
+        )
+        created += 1
+
+      log_audit(
+        actor=request.user,
+        action=AuditAction.IMPORT,
+        entity_type="Indicator",
+        entity_id=str(project.id),
+        summary=f"Imported indicators into project {project.name}",
+        metadata={"created": created, "failed": len(errors), "total": total},
+        request=request,
+      )
+
+      payload = {"created": created, "failed": errors, "total": total}
+      if errors:
+        return Response(payload, status=207 if created else 400)
+      return Response(payload)
+    except Exception as exc:
+      return Response({"detail": f"CSV Parse Error: {str(exc)}"}, status=400)
 
   def perform_create(self, serializer):
     instance = serializer.save(created_by=self.request.user)

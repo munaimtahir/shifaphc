@@ -28,22 +28,21 @@ export default function ProjectsListPage() {
         <div style={{ paddingBottom: 40 }}>
             <div style={{ display: "flex", alignItems: "center", marginBottom: 24 }}>
                 <h1 style={{ margin: 0, marginRight: "auto" }}>Projects</h1>
-                {canMutate && (
-                    <Link
-                        to="/projects/new"
-                        style={{
-                            padding: "10px 20px",
-                            backgroundColor: "#059669",
-                            color: "#fff",
-                            textDecoration: "none",
-                            borderRadius: 8,
-                            fontWeight: "bold",
-                            fontSize: "14px",
-                        }}
-                    >
-                        + New Project
-                    </Link>
-                )}
+                <Link
+                    to={canMutate ? "/projects/new" : "#"}
+                    style={{
+                        padding: "10px 20px",
+                        backgroundColor: canMutate ? "#059669" : "#e5e7eb",
+                        color: canMutate ? "#fff" : "#9ca3af",
+                        textDecoration: "none",
+                        borderRadius: 8,
+                        fontWeight: "bold",
+                        fontSize: "14px",
+                        pointerEvents: canMutate ? "auto" : "none",
+                    }}
+                >
+                    + New Project
+                </Link>
             </div>
 
             {loading ? (

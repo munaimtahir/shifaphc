@@ -10,7 +10,7 @@ export default function Login() {
     const navigate = useNavigate();
     const location = useLocation();
 
-    const from = (location.state as any)?.from?.pathname || "/";
+    const from = (location.state as any)?.from?.pathname || "/dashboard";
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();

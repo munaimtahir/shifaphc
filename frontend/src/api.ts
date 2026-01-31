@@ -117,6 +117,12 @@ export type AuditSummary = {
   counts: { [key: string]: number };
 }
 
+export type DashboardStats = {
+  projects: number;
+  indicators: number;
+  compliance_records: number;
+};
+
 export type AuditLog = {
   id: string;
   timestamp: string;
@@ -171,6 +177,10 @@ export async function updateIndicator(id: string, data: any): Promise<Indicator>
 // Projects
 export async function fetchProjects(): Promise<Project[]> {
   return request("/api/projects/");
+}
+
+export async function fetchDashboardStats(): Promise<DashboardStats> {
+  return request("/api/dashboard/");
 }
 
 export async function fetchProject(id: string): Promise<Project> {
@@ -268,8 +278,8 @@ export function getAuditLogsExportUrl(filters: Record<string, string | undefined
 }
 
 // Import
-export async function importIndicators(formData: FormData) {
-  return request("/api/indicators/import/", {
+export async function importProjectIndicators(projectId: string, formData: FormData) {
+  return request(`/api/projects/${projectId}/import-indicators/`, {
     method: "POST",
     body: formData,
   });
